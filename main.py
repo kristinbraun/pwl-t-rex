@@ -22,13 +22,6 @@ parser.add_argument(
     help="Filename",
 )
 parser.add_argument(
-    "--hpc",
-    action="store",
-    type=int,
-    default=1,
-    help="Is programm called from Cluster?",
-)
-parser.add_argument(
     "--epsilon",
     action="store",
     type=float,
@@ -47,7 +40,7 @@ parser.add_argument(
     action="store",
     type=int,
     default=60,
-    help="Timelimit for MIPs in seconds",
+    help="Timelimit for MILPs in seconds",
 )
 parser.add_argument(
     "--create",
@@ -67,7 +60,6 @@ parser.add_argument(
 args = parser.parse_args()
 mip_method = args.method
 TESTNAME = args.filename
-solving.HPC = args.hpc
 solving.gur_tl = args.timelimit
 solving.GUR_OUTPUT = args.solver_output
 create = False if args.create == 0 else True
