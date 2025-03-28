@@ -44,7 +44,7 @@ parser.add_argument(
     action="store",
     type=int,
     default=0,
-    help="Creating model without solving it. 0: Yes, 1: No",
+    help="Creating model without solving it. 0: No, 1: Yes",
 )
 parser.add_argument(
     "--solver_output",
