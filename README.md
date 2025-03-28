@@ -58,12 +58,12 @@ This project implements and compares different Mixed Integer Programming (MIP) r
 
 1. Clone this repository:
 ```bash
-git clone [your-repository-url]
+git clone https://github.com/kristinbraun/pwl-t-rex.git
 ```
 
 2. Install the required dependencies:
 ```bash
-pip install -r requirements.txt
+pip install pyomo gurobipy numpy scipy beautifulsoup4 lxml
 ```
 
 ### Dependencies
@@ -73,9 +73,6 @@ Core dependencies:
 - gurobipy - Gurobi optimization solver interface
 - numpy - Numerical computing
 - scipy - Scientific computing utilities
-- Gurobi Optimizer - Commercial solver (required for solving MIP models)
-  - Academic licenses are available for free
-  - Installation instructions at: https://www.gurobi.com/documentation/quickstart.html
 - beautifulsoup4 - XML/HTML parsing
 - lxml - XML/HTML processing library
 
@@ -112,7 +109,7 @@ python pwltrex.py [filename] [options]
 ### Example
 
 ```bash
-python main.py alkyl.osil --method -5 --epsilon 0.1 --timelimit 120
+python pwltrex.py alkyl.osil --method -5 --epsilon 0.1 --timelimit 120
 ```
 
 ## Output
@@ -125,7 +122,7 @@ The program outputs:
   - Time to first primal solution
 
 ## Project Structure
-- `main.py`: Main execution script
+- `pwltrex.py`: Main execution script
 - `MIPRef_osilToOnedim.py`: Converts OSIL format to one-dimensional representation 
 - `MIPRef_onedimToMIP.py`: Converts one-dimensional to MIP representation
 - `MIPRef_mipRepresentations.py`: Contains MIP formulation methods
