@@ -1,10 +1,9 @@
-import copy
-
 import pyomo.environ as pyo
 from bs4 import BeautifulSoup as bs
 import numpy as np
 import datastructure_nonlinearTree as nltree
 from dataclasses import dataclass
+
 
 @dataclass
 class OSILData:
@@ -217,9 +216,7 @@ def create_nlTree(root, vars):
                 v = nltree.Variable(
                     coef=1, idx=idx, lb=vars[idx]["lb"], ub=vars[idx]["ub"]
                 )
-                f = nltree.Number(
-                    value=coef
-                )
+                f = nltree.Number(value=coef)
                 return nltree.Nonlinear_ExpTree(
                     num_children=2,
                     children=[f, v],
@@ -242,12 +239,7 @@ def create_nlTree(root, vars):
         if operation == "negate" and num_children == 1:
             return nltree.Nonlinear_ExpTree(
                 num_children=2,
-                children=[
-                    nltree.Number(
-                        value=-1
-                    )
-                ]
-                + children_trees,
+                children=[nltree.Number(value=-1)] + children_trees,
                 operation=nltree.expressions["product"],
             )
         if operation == "power":
@@ -276,7 +268,7 @@ def create_nlTree(root, vars):
         return nltree.Nonlinear_ExpTree(
             num_children=num_children,
             children=children_trees,
-            operation=nltree.expressions[operation]
+            operation=nltree.expressions[operation],
         )
     else:
         exit(operation + ": Not implemented (children: " + str(num_children) + ")")
@@ -322,7 +314,11 @@ def split_product(node):
     left = node.children[0]
     right = split_product(
         nltree.Nonlinear_ExpTree(
-            node.num_children - 1, node.children[1:], node.operation, nl_idx=node.nl_idx, root_idx=node.root_idx
+            node.num_children - 1,
+            node.children[1:],
+            node.operation,
+            nl_idx=node.nl_idx,
+            root_idx=node.root_idx,
         )
     )
     node.num_children = 2
@@ -356,22 +352,40 @@ def reformulate_xabsx(exptree):
             if isinstance(exptree.children[i], nltree.Variable):
                 var_children.append(exptree.children[i].idx)
                 loc_var.append(i)
-            elif isinstance(exptree.children[i], nltree.Nonlinear_ExpTree) and exptree.children[i].operation.symbol == "abs":
+            elif (
+                isinstance(exptree.children[i], nltree.Nonlinear_ExpTree)
+                and exptree.children[i].operation.symbol == "abs"
+            ):
                 if isinstance(exptree.children[i].children[0], nltree.Variable):
                     abs_children.append(exptree.children[i].children[0].idx)
                     loc_abs.append(i)
 
         for i, c in enumerate(abs_children):
             if c in var_children:
-                coef = np.abs(exptree.children[loc_abs[i]].children[0].coef)*exptree.children[loc_var[i]].coef
+                coef = (
+                    np.abs(exptree.children[loc_abs[i]].children[0].coef)
+                    * exptree.children[loc_var[i]].coef
+                )
                 exptree.children[loc_abs[i]] = nltree.Number(value=coef)
-                newvarchild = nltree.Variable(coef=1, idx=exptree.children[loc_var[i]].idx, lb=exptree.children[loc_var[i]].lb, ub=exptree.children[loc_var[i]].ub)
-                exptree.children[loc_var[i]] = nltree.Nonlinear_ExpTree(num_children=1, children=[newvarchild], operation=nltree.expressions["xabsx"], nl_idx=exptree.nl_idx, root_idx=exptree.root_idx)
+                newvarchild = nltree.Variable(
+                    coef=1,
+                    idx=exptree.children[loc_var[i]].idx,
+                    lb=exptree.children[loc_var[i]].lb,
+                    ub=exptree.children[loc_var[i]].ub,
+                )
+                exptree.children[loc_var[i]] = nltree.Nonlinear_ExpTree(
+                    num_children=1,
+                    children=[newvarchild],
+                    operation=nltree.expressions["xabsx"],
+                    nl_idx=exptree.nl_idx,
+                    root_idx=exptree.root_idx,
+                )
                 break
 
     for i in range(exptree.num_children):
         exptree.children[i] = reformulate_xabsx(exptree.children[i])
     return exptree
+
 
 def reformulate_floats_to_coef_from_nonlinearity(exptree):
     if exptree.num_children == 0:
@@ -386,12 +400,19 @@ def reformulate_floats_to_coef_from_nonlinearity(exptree):
                 if exptree.num_children == 1:
                     exptree = exptree.children[0]
     for i in range(exptree.num_children):
-        exptree.children[i] = reformulate_floats_to_coef_from_nonlinearity(exptree.children[i])
+        exptree.children[i] = reformulate_floats_to_coef_from_nonlinearity(
+            exptree.children[i]
+        )
     return exptree
+
 
 def reformulate_floats_to_coef(in_model):
     for i in range(len(in_model.nonlinearexprs)):
-        in_model.nonlinearexprs[i]["expression"] = reformulate_floats_to_coef_from_nonlinearity(in_model.nonlinearexprs[i]["expression"])
+        in_model.nonlinearexprs[i]["expression"] = (
+            reformulate_floats_to_coef_from_nonlinearity(
+                in_model.nonlinearexprs[i]["expression"]
+            )
+        )
     return in_model
 
 
@@ -399,7 +420,9 @@ def reformulate_floats_to_coef(in_model):
 # for example: prod(x1, x2, x3) -> prod(x1, prod(x2, x3))
 def reformulate_products3(in_model):
     for i in range(len(in_model.nonlinearexprs)):
-        in_model.nonlinearexprs[i]["expression"] = reformulate_xabsx(in_model.nonlinearexprs[i]["expression"])
+        in_model.nonlinearexprs[i]["expression"] = reformulate_xabsx(
+            in_model.nonlinearexprs[i]["expression"]
+        )
         in_model.nonlinearexprs[i]["expression"] = remove_products3_from_nonlinearities(
             in_model.nonlinearexprs[i]["expression"]
         )
@@ -409,8 +432,20 @@ def reformulate_products3(in_model):
 def remove_div(node):
     left = node.children[0]
     right = node.children[1]
-    right = nltree.Nonlinear_ExpTree(1, [right], nltree.expressions["inverse"], nl_idx=node.nl_idx, root_idx=node.root_idx)
-    return nltree.Nonlinear_ExpTree(2, [left, right], nltree.expressions["product"], nl_idx=node.nl_idx, root_idx=node.root_idx)
+    right = nltree.Nonlinear_ExpTree(
+        1,
+        [right],
+        nltree.expressions["inverse"],
+        nl_idx=node.nl_idx,
+        root_idx=node.root_idx,
+    )
+    return nltree.Nonlinear_ExpTree(
+        2,
+        [left, right],
+        nltree.expressions["product"],
+        nl_idx=node.nl_idx,
+        root_idx=node.root_idx,
+    )
 
 
 def remove_division_from_nonlinearities(exptree):
@@ -456,7 +491,11 @@ def reformulate_nonlinearities(in_model, debug=False):
         nonlocal bias_considx
         nonlocal cur_idx
 
-        art_name_nl = art_name + "_NL_IDX_" + str(exptree.nl_idx) + '_COUNT_' + str(cur_idx) if exptree.nl_idx != -1 else art_name + "_NL_IDX_X_COUNT_" + str(cur_idx)
+        art_name_nl = (
+            art_name + "_NL_IDX_" + str(exptree.nl_idx) + "_COUNT_" + str(cur_idx)
+            if exptree.nl_idx != -1
+            else art_name + "_NL_IDX_X_COUNT_" + str(cur_idx)
+        )
 
         if debug:
             print(exptree.nl_idx, exptree.root_idx, exptree)
@@ -480,7 +519,12 @@ def reformulate_nonlinearities(in_model, debug=False):
                 bounds += [(ch.value, ch.value)]
         lb, ub = nltree.get_lower_and_upper_bound(exptree.operation, bounds)
 
-        var = {"name": art_name_nl + "_var" + str(cur_idx), "lb": lb, "ub": ub, "type": "C"}
+        var = {
+            "name": art_name_nl + "_var" + str(cur_idx),
+            "lb": lb,
+            "ub": ub,
+            "type": "C",
+        }
         con = {"name": art_name_nl + "_con" + str(cur_idx), "lb": 0, "ub": 0}
         artificial_vars += [var]
         artificial_cons += [con]
@@ -490,12 +534,19 @@ def reformulate_nonlinearities(in_model, debug=False):
             children=exptree.children,
             operation=exptree.operation,
             nl_idx=exptree.nl_idx,
-            root_idx=exptree.root_idx
+            root_idx=exptree.root_idx,
         )
         artificial_nlins += [{"idx": cur_idx + bias_considx, "expression": new_tree}]
         cur_idx += 1
 
-        return nltree.Variable(idx=bias_varidx + cur_idx - 1, coef=1, lb=lb, ub=ub, nl_idx=-5, root_idx=exptree.root_idx)
+        return nltree.Variable(
+            idx=bias_varidx + cur_idx - 1,
+            coef=1,
+            lb=lb,
+            ub=ub,
+            nl_idx=-5,
+            root_idx=exptree.root_idx,
+        )
 
     for i in range(len(in_model.nonlinearexprs)):
         in_model.nonlinearexprs[i]["expression"] = reformulate_nonlinearity(
@@ -541,7 +592,11 @@ def remove_products2(in_model):
         nonlocal cur_varidx
         nonlocal cur_considx
 
-        add_name_nl = add_name + "_NL_IDX_" + str(exptree.nl_idx) + '_COUNT_' if exptree.nl_idx != -1 else add_name + "_X_" 
+        add_name_nl = (
+            add_name + "_NL_IDX_" + str(exptree.nl_idx) + "_COUNT_"
+            if exptree.nl_idx != -1
+            else add_name + "_X_"
+        )
 
         if exptree.num_children == 0:
             return exptree
@@ -555,9 +610,7 @@ def remove_products2(in_model):
                         xs_idx, xs = sq_dict[c1.idx]
                     else:
                         xs_lb = (
-                            0
-                            if c1.lb <= 0 and c1.ub >= 0
-                            else min(c1.lb**2, c1.ub**2)
+                            0 if c1.lb <= 0 and c1.ub >= 0 else min(c1.lb**2, c1.ub**2)
                         )
                         xs_ub = max(c1.lb**2, c1.ub**2)
                         xs = {
@@ -576,11 +629,17 @@ def remove_products2(in_model):
                         new_tree = nltree.Nonlinear_ExpTree(
                             num_children=1,
                             children=[
-                                nltree.Variable(coef=1, idx=c1.idx, lb=c1.lb, ub=c1.ub, root_idx=exptree.root_idx)
+                                nltree.Variable(
+                                    coef=1,
+                                    idx=c1.idx,
+                                    lb=c1.lb,
+                                    ub=c1.ub,
+                                    root_idx=exptree.root_idx,
+                                )
                             ],
                             operation=nltree.expressions["square"],
                             nl_idx=exptree.nl_idx,
-                            root_idx=exptree.root_idx
+                            root_idx=exptree.root_idx,
                         )
                         additional_nlins += [
                             {"idx": cur_considx + bias_considx, "expression": new_tree}
@@ -596,7 +655,7 @@ def remove_products2(in_model):
                         coef=coef_prod * c1.coef * c2.coef,
                         lb=xs["lb"],
                         ub=xs["ub"],
-                        root_idx=exptree.root_idx
+                        root_idx=exptree.root_idx,
                     )
                     return newtreetest
 
@@ -606,7 +665,11 @@ def remove_products2(in_model):
                         (min(c1.idx, c2.idx), max(c1.idx, c2.idx))
                     ]
                     return_var = nltree.Variable(
-                        idx=z_idx, coef=c1.coef * c2.coef * coef_prod, lb=z_lb, ub=z_ub, root_idx=exptree.root_idx
+                        idx=z_idx,
+                        coef=c1.coef * c2.coef * coef_prod,
+                        lb=z_lb,
+                        ub=z_ub,
+                        root_idx=exptree.root_idx,
                     )
                     return return_var
 
@@ -617,9 +680,7 @@ def remove_products2(in_model):
                 if c1.idx in sq_dict:
                     xs_idx, xs = sq_dict[c1.idx]
                 else:
-                    xs_lb = (
-                        0 if c1.lb <= 0 and c1.ub >= 0 else min(c1.lb**2, c1.ub**2)
-                    )
+                    xs_lb = 0 if c1.lb <= 0 and c1.ub >= 0 else min(c1.lb**2, c1.ub**2)
                     xs_ub = max(c1.lb**2, c1.ub**2)
                     xs = {
                         "name": add_name_nl + "_xs_var" + str(cur_varidx),
@@ -637,11 +698,17 @@ def remove_products2(in_model):
                     new_tree = nltree.Nonlinear_ExpTree(
                         num_children=1,
                         children=[
-                            nltree.Variable(coef=1, idx=c1.idx, lb=c1.lb, ub=c1.ub, root_idx=exptree.root_idx)
+                            nltree.Variable(
+                                coef=1,
+                                idx=c1.idx,
+                                lb=c1.lb,
+                                ub=c1.ub,
+                                root_idx=exptree.root_idx,
+                            )
                         ],
                         operation=nltree.expressions["square"],
                         nl_idx=exptree.nl_idx,
-                        root_idx=exptree.root_idx
+                        root_idx=exptree.root_idx,
                     )
                     additional_nlins += [
                         {"idx": cur_considx + bias_considx, "expression": new_tree}
@@ -653,16 +720,18 @@ def remove_products2(in_model):
                     sq_dict[c1.idx] = (xs_idx, xs)
                 child_list += [
                     nltree.Variable(
-                        coef=-1 * coef_mccormick, idx=xs_idx, lb=xs["lb"], ub=xs["ub"], root_idx=exptree.root_idx
+                        coef=-1 * coef_mccormick,
+                        idx=xs_idx,
+                        lb=xs["lb"],
+                        ub=xs["ub"],
+                        root_idx=exptree.root_idx,
                     )
                 ]
 
                 if c2.idx in sq_dict:
                     ys_idx, ys = sq_dict[c2.idx]
                 else:
-                    ys_lb = (
-                        0 if c2.lb <= 0 and c2.ub >= 0 else min(c2.lb**2, c2.ub**2)
-                    )
+                    ys_lb = 0 if c2.lb <= 0 and c2.ub >= 0 else min(c2.lb**2, c2.ub**2)
                     ys_ub = max(c2.lb**2, c2.ub**2)
                     ys = {
                         "name": add_name_nl + "_ys_var" + str(cur_varidx),
@@ -680,11 +749,17 @@ def remove_products2(in_model):
                     new_tree = nltree.Nonlinear_ExpTree(
                         num_children=1,
                         children=[
-                            nltree.Variable(coef=1, idx=c2.idx, lb=c2.lb, ub=c2.ub, root_idx=exptree.root_idx)
+                            nltree.Variable(
+                                coef=1,
+                                idx=c2.idx,
+                                lb=c2.lb,
+                                ub=c2.ub,
+                                root_idx=exptree.root_idx,
+                            )
                         ],
                         operation=nltree.expressions["square"],
                         nl_idx=exptree.nl_idx,
-                        root_idx=exptree.root_idx
+                        root_idx=exptree.root_idx,
                     )
                     additional_nlins += [
                         {"idx": cur_considx + bias_considx, "expression": new_tree}
@@ -696,7 +771,11 @@ def remove_products2(in_model):
                     sq_dict[c2.idx] = (ys_idx, ys)
                 child_list += [
                     nltree.Variable(
-                        coef=-1 * coef_mccormick, idx=ys_idx, lb=ys["lb"], ub=ys["ub"], root_idx=exptree.root_idx
+                        coef=-1 * coef_mccormick,
+                        idx=ys_idx,
+                        lb=ys["lb"],
+                        ub=ys["ub"],
+                        root_idx=exptree.root_idx,
                     )
                 ]
 
@@ -740,11 +819,17 @@ def remove_products2(in_model):
                 new_tree = nltree.Nonlinear_ExpTree(
                     num_children=1,
                     children=[
-                        nltree.Variable(coef=1, idx=p_idx, lb=p["lb"], ub=p["ub"], root_idx=exptree.root_idx)
+                        nltree.Variable(
+                            coef=1,
+                            idx=p_idx,
+                            lb=p["lb"],
+                            ub=p["ub"],
+                            root_idx=exptree.root_idx,
+                        )
                     ],
                     operation=nltree.expressions["square"],
                     nl_idx=exptree.nl_idx,
-                    root_idx=exptree.root_idx
+                    root_idx=exptree.root_idx,
                 )
                 additional_nlins += [
                     {"idx": cur_considx + bias_considx, "expression": new_tree}
@@ -752,7 +837,11 @@ def remove_products2(in_model):
 
                 child_list += [
                     nltree.Variable(
-                        coef=coef_mccormick, idx=ps_idx, lb=ps["lb"], ub=ps["ub"], root_idx=exptree.root_idx
+                        coef=coef_mccormick,
+                        idx=ps_idx,
+                        lb=ps["lb"],
+                        ub=ps["ub"],
+                        root_idx=exptree.root_idx,
                     )
                 ]
                 cur_considx += 1
@@ -876,7 +965,7 @@ def remove_products2(in_model):
                     children=child_list,
                     operation=nltree.expressions["sum"],
                     nl_idx=exptree.nl_idx,
-                    root_idx=exptree.root_idx
+                    root_idx=exptree.root_idx,
                 )
                 additional_nlins += [
                     {"idx": cur_considx + bias_considx, "expression": new_tree}
@@ -891,7 +980,11 @@ def remove_products2(in_model):
                     z_ub,
                 )
                 return_var = nltree.Variable(
-                    idx=z_idx, coef=c1.coef * c2.coef * coef_prod, lb=z_lb, ub=z_ub, root_idx=exptree.root_idx
+                    idx=z_idx,
+                    coef=c1.coef * c2.coef * coef_prod,
+                    lb=z_lb,
+                    ub=z_ub,
+                    root_idx=exptree.root_idx,
                 )
                 return return_var
             else:
@@ -927,18 +1020,18 @@ def remove_products2(in_model):
                             idx=v1,
                             lb=in_model.vars[v1]["lb"],
                             ub=in_model.vars[v1]["ub"],
-                            root_idx=len(new_linex) + len(in_model.nonlinearexprs)
+                            root_idx=len(new_linex) + len(in_model.nonlinearexprs),
                         ),
                         nltree.Variable(
                             idx=v2,
                             lb=in_model.vars[v2]["lb"],
                             ub=in_model.vars[v2]["ub"],
-                            root_idx=len(new_linex) + len(in_model.nonlinearexprs)
+                            root_idx=len(new_linex) + len(in_model.nonlinearexprs),
                         ),
                     ],
                     operation=nltree.expressions["product"],
-                    nl_idx = len(new_linex) + len(in_model.nonlinearexprs),
-                    root_idx = len(new_linex) + len(in_model.nonlinearexprs)
+                    nl_idx=len(new_linex) + len(in_model.nonlinearexprs),
+                    root_idx=len(new_linex) + len(in_model.nonlinearexprs),
                 ),
             }
         ]

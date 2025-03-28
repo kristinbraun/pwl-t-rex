@@ -24,7 +24,6 @@ def create_single_relaxation(f_nl, x_low, x_up):
     return m, t, error_low, error_up
 
 
-
 def find_breakpoints_abs(f_nl, x_low, x_up):
     errors_low = [None, 0]
     errors_up = [None, 0]

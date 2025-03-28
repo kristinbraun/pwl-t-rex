@@ -104,12 +104,16 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0):
 
     n = len(in_model.nonlinearexprs)
     for j in range(len(in_model.nonlinearexprs)):
-        progress = round(j/n * 100)
-        progress_bar = '[' + '=' * (progress // 2) + ' ' * (50 - progress // 2) + ']'
-        print(f'\rReformulating: {progress_bar} {progress}%', end='')
+        progress = round(j / n * 100)
+        progress_bar = "[" + "=" * (progress // 2) + " " * (50 - progress // 2) + "]"
+        print(f"\rReformulating: {progress_bar} {progress}%", end="")
         nl = in_model.nonlinearexprs[j]
         coef = 1
-        add_name_nl = (add_name + "_NL_IDX_" + str(nl['expression'].nl_idx) + '_COUNT_' + str(j)) if nl['expression'].nl_idx != -1 else (add_name + "_NL_IDX_X_COUNT_" + str(j))
+        add_name_nl = (
+            (add_name + "_NL_IDX_" + str(nl["expression"].nl_idx) + "_COUNT_" + str(j))
+            if nl["expression"].nl_idx != -1
+            else (add_name + "_NL_IDX_X_COUNT_" + str(j))
+        )
         if "coef" in nl:
             coef = nl["coef"]
         if nl["expression"].operation is None:
@@ -143,11 +147,15 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0):
                 errors_up,
                 m_vals,
                 t_vals,
-            ) = linrelax.find_breakpoints(
-                f, x_low, x_up, epsilon
-            )
-            #TODO: return interesting stuff about breakpoints
-            breakpoint_info += [{'breakpoints': breakpoints, 'nl': nl['expression'], 'var': in_model.vars[childvar.idx]}]
+            ) = linrelax.find_breakpoints(f, x_low, x_up, epsilon)
+            # TODO: return interesting stuff about breakpoints
+            breakpoint_info += [
+                {
+                    "breakpoints": breakpoints,
+                    "nl": nl["expression"],
+                    "var": in_model.vars[childvar.idx],
+                }
+            ]
             breakpoints_list += [(len(breakpoints), x_up - x_low)]
 
             if 1 <= method <= 8:
@@ -301,7 +309,11 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0):
                 new_lins += [(nl["idx"], n_z, 1)]
                 # create new constraint for REF(nl) [ + eps ] - z = 0
                 new_cons = [
-                    {"name": add_name_nl + "_cons_z_" + str(j), "lb": ref_lb, "ub": ref_ub}
+                    {
+                        "name": add_name_nl + "_cons_z_" + str(j),
+                        "lb": ref_lb,
+                        "ub": ref_ub,
+                    }
                 ] + new_cons
                 new_lins += [(cur_idx, n_z, -1)]
 

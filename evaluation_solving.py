@@ -1,28 +1,22 @@
 import numpy as np
 import pyomo.environ as pyo
 
-# import pyscipopt as pso
 import pyomo.opt as popt
 from gurobipy import GRB
 
-HPC = None
 GUR_OUTPUT = False
 gur_tl = None
 
 
 def solve_and_store_results(pyo_model, rep, gur=False):
-    if HPC and not gur:
-        opt = pyo.SolverFactory(
-            "scip", executable="../../scip/scipoptsuite-8.0.1/scip/release/bin/scip"
-        )
-    elif not HPC and not gur:
+    if not gur:
         opt = pyo.SolverFactory(
             "scip", executable="../../scip/scipoptsuite-8.0.1/scip/bin/scip"
         )
     elif gur:
         opt = pyo.SolverFactory("gurobi_persistent", solver_io="python")
         opt._set_instance(pyo_model)
-        opt.options['NumericFocus'] = 2
+        opt.options["NumericFocus"] = 2
         opt._lasttime = 0
     opt._sol_tuples = {}
     solving_results = {
@@ -154,43 +148,3 @@ def solve_and_store_results(pyo_model, rep, gur=False):
         solving_results["info"] = exp
 
     return solving_results
-
-
-# create pyomo model that contains only functions of the form x1*x2 and nonlin(x1)
-def create_and_test_reformulation(filename):
-    # obtain all data structures necessary for reformulation
-    initial_rep = create_datastructures_from_osil(filename)
-    model_initial = create_pyomomodel_from_OSILdata(initial_rep)
-    removedproducts_rep = reformulate_products3(initial_rep)
-    removeddivision_rep = reformulate_division(removedproducts_rep)
-    reform_rep = reformulate_nonlinearities(removeddivision_rep)
-    onedim_rep = remove_products2(reform_rep)
-    model = create_pyomomodel_from_OSILdata(onedim_rep)
-    # model_initial.pprint()
-    # model.pprint()
-
-    print("Solving Initial Model")
-    results_initial = solve_and_store_results(model_initial, initial_rep)
-    print("Objective:", results_initial["objective"])
-    print("Solving Reformulation")
-    results_ref = solve_and_store_results(model, reform_rep)
-    print("Objective:", results_ref["objective"])
-
-    # for c in initial_rep.cons:
-    #    model_initial.component(c['name']).pprint()
-    #    model.component(c['name']).pprint()
-
-    return results_initial, results_ref
-
-
-def insert_solution_in_scip_initialmodel(filename, fixed_variables):
-    m = pso.Model()
-    m.readProblem(filename)
-    for v in m.getVars():
-        if v.name in fixed_variables:
-            # print(v, fixed_variables[v.name])
-            m.addCons(v == fixed_variables[v.name])
-        else:
-            print(v, "not in model")
-    print("solving problem")
-    m.optimize()

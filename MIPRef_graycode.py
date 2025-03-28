@@ -37,7 +37,3 @@ def calc_Z(r):
     for i in range(r - 1):
         cur = calc_next(cur)
     return cur
-
-
-# print(calc_K(3))
-# print(calc_C(3))

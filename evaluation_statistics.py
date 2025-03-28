@@ -1,7 +1,6 @@
 import datastructure_nonlinearTree as nltree
 
 
-
 def obtain_statistics(rep):
     stats = {
         "num_variables": len(rep.vars),

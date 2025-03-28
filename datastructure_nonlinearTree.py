@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
 from scipy.special import gamma
-import math
 import pyomo.environ as pyo
 from typing import Tuple
 
@@ -13,7 +12,9 @@ class Operation:
     num_param: None
 
     def __repr__(self):
-        return self.symbol + ("" if self.num_param is None else " (" + self.num_param + ")")
+        return self.symbol + (
+            "" if self.num_param is None else " (" + self.num_param + ")"
+        )
 
     def __init__(self, symbol, dim, num_param=None):
         self.symbol = symbol
@@ -69,7 +70,7 @@ class Nonlinear_ExpTree:
     def get_tree(self, level="", last=False):
         res = ""
         res += level + str(self.operation.symbol)
-        res += " (" + str(self.nl_idx) + ', NL-Root ' + str(self.root_idx) + ")"
+        res += " (" + str(self.nl_idx) + ", NL-Root " + str(self.root_idx) + ")"
         res += "\n"
         for i in range(self.num_children):
             if last:
@@ -105,7 +106,18 @@ class Variable(Nonlinear_ExpTree):
         )
 
     def get_tree(self, level="", last=False):
-        return level + "[" + str(self.coef) + "*var:" + str(self.idx) + "] (" + str(self.nl_idx) + ', NL-Root ' + str(self.root_idx) + ")\n"
+        return (
+            level
+            + "["
+            + str(self.coef)
+            + "*var:"
+            + str(self.idx)
+            + "] ("
+            + str(self.nl_idx)
+            + ", NL-Root "
+            + str(self.root_idx)
+            + ")\n"
+        )
 
     def __init__(self, idx, coef=1, lb=-np.inf, ub=np.inf, nl_idx=-1, root_idx=-1):
         self.coef = coef
@@ -135,7 +147,15 @@ class Number(Nonlinear_ExpTree):
         return str(self.value)
 
     def get_tree(self, level="", last=False):
-        return level + str(self.value) + " (" + str(self.nl_idx) + ', NL-Root ' + str(self.root_idx) + ")\n"
+        return (
+            level
+            + str(self.value)
+            + " ("
+            + str(self.nl_idx)
+            + ", NL-Root "
+            + str(self.root_idx)
+            + ")\n"
+        )
 
 
 # This is a list of all possible operators.
@@ -156,7 +176,7 @@ nonlinearExpressions_inp = [
     ("power_xa", (1, 1)),
     ("power_xy", (2, 2)),
     ("power", (2, 2)),
-    ("xabsx", (1, 1))
+    ("xabsx", (1, 1)),
 ]
 linearExpressions_inp = [("sum", (2, np.inf)), ("negate", (1, 1)), ("abs", (1, 1))]
 
@@ -463,8 +483,8 @@ def get_der_andX(op, x_low, x_up, m, t):
         der = lambda x: a * (x ** (a - 1))
         roots = [np.abs(m / a) ** (1 / (a - 1)), -np.abs(m / a) ** (1 / (a - 1))]
     elif op.symbol == "xabsx":
-        der = lambda x: 2*np.abs(x)
-        roots = [m/2, -m/2]
+        der = lambda x: 2 * np.abs(x)
+        roots = [m / 2, -m / 2]
     else:
         exit(op.symbol + " not implemented for der and X")
     ret_roots = []
