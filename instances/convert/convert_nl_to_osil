@@ -1,5 +1,6 @@
 FILE=$1
 
+
 echo "read $FILE.nl write problem $FILE.gms quit" | scip
 
 sed 's/\r//g' $FILE.gms > ${FILE}_2.gms
