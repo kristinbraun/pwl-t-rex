@@ -136,6 +136,7 @@ python pwltrex.py input.osil --method -5
 ```
 
 Note: The script will automatically handle the file extension, so you only need to provide the base filename. If you already have .osil files, you can skip this entire conversion section and its dependencies.
+
 An error of the form  `'\r': command not found` can be handled by using one of the two commands:
 ``` bash
 # Converting from Windows to Linux file format
