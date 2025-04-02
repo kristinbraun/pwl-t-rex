@@ -119,15 +119,6 @@ python pwltrex.py [filename] [options]
 python pwltrex.py alkyl.osil --method -5 --epsilon 0.1 --timelimit 120
 ```
 
-## Output
-
-The program outputs:
-- Objective function value
-- Runtime to optimal and to first primal solution
-- Sorted rankings of methods by:
-  - Total runtime
-  - Time to first primal solution
-
 
 ### File Conversion (Optional)
 
@@ -145,6 +136,16 @@ python pwltrex.py input.osil --method -5
 ```
 
 Note: The script will automatically handle the file extension, so you only need to provide the base filename. If you already have .osil files, you can skip this entire conversion section and its dependencies.
+
+
+## Output
+
+The program outputs:
+- Objective function value
+- Runtime to optimal and to first primal solution
+- Sorted rankings of methods by:
+  - Total runtime
+  - Time to first primal solution
 
 
 ## Project Structure
