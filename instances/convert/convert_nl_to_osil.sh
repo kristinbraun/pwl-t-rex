@@ -1,5 +1,6 @@
-FILE=$1
+#!/bin/bash
 
+FILE=$1
 
 echo "read $FILE.nl write problem $FILE.gms quit" | scip
 
