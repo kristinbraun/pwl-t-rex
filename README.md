@@ -126,10 +126,10 @@ If your input problems are in AMPL/GAMS format rather than .osil format, you can
 
 ```bash
 # Make the conversion script executable
-chmod +x instances/convert/convert_nl_to_osil
+chmod +x instances/convert/convert_nl_to_osil.sh
 
 # Convert from AMPL/GAMS format
-./instances/convert/convert_nl_to_osil input
+./instances/convert/convert_nl_to_osil.sh input
 
 # The converted .osil file can then be used as input:
 python pwltrex.py input.osil --method -5
@@ -159,7 +159,7 @@ The program outputs:
 - `evaluation_solving.py`: Solving utilities
 - `evaluation_statistics.py`: Statistical analysis utilities
 - `instances/convert/`: Utilities for converting AMPL/GAMS files to OSIL format
-  - `convert_nl_to_osil`: Script for converting .nl files to .osil format
+  - `convert_nl_to_osil.sh`: Script for converting .nl files to .osil format
   - `add_optline.py`: Python helper file for conversion
 
 
