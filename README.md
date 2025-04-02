@@ -61,21 +61,27 @@ This project implements and compares different Mixed Integer Programming (MIP) r
 git clone https://github.com/kristinbraun/pwl-t-rex.git
 ```
 
-2. Install the required dependencies:
+2. Install the required dependencies using the provided requirements.txt:
 ```bash
-pip install pyomo gurobipy numpy scipy beautifulsoup4 lxml
+pip install -r requirements.txt
 ```
 
 ### Dependencies
 
-Core dependencies:
-- pyomo - Mathematical optimization modeling
-- gurobipy - Gurobi optimization solver interface
-- numpy - Numerical computing
-- scipy - Scientific computing utilities
-- beautifulsoup4 - XML/HTML parsing
-- lxml - XML/HTML processing library
+The following packages are specified in requirements.txt:
+- pyomo>=6.0 - Mathematical optimization modeling
+- gurobipy>=10.0 - Gurobi optimization solver interface
+- numpy>=1.20 - Numerical computing
+- scipy>=1.7 - Scientific computing utilities
+- beautifulsoup4>=4.9 - XML/HTML parsing
+- lxml>=4.9 - XML/HTML processing library
 
+External software requirements (optional for file conversion):
+- SCIP - Mixed Integer Programming solver
+- GAMS - Modeling system for mathematical optimization
+  - Academic licenses available at www.gams.com
+
+Note: These external tools are only needed if you need to convert input files. If you're working directly with .osil files, you can skip installing them.
 
 ## Usage
 
@@ -106,6 +112,7 @@ python pwltrex.py [filename] [options]
 - `--create`: Create model without solving (0: No, 1: Yes)
 - `--solver_output`: Print solver output (0: No, 1: Yes)
 
+
 ### Example
 
 ```bash
@@ -121,6 +128,25 @@ The program outputs:
   - Total runtime
   - Time to first primal solution
 
+
+### File Conversion (Optional)
+
+If your input problems are in AMPL/GAMS format rather than .osil format, you can use the conversion script in the `instances/convert` folder. This entire conversion step is optional and only needed if you're not working directly with .osil files.
+
+```bash
+# Make the conversion script executable
+chmod +x instances/convert/convert_nl_to_osil
+
+# Convert from AMPL/GAMS format
+./instances/convert/convert_nl_to_osil input
+
+# The converted .osil file can then be used as input:
+python pwltrex.py input.osil --method -5
+```
+
+Note: The script will automatically handle the file extension, so you only need to provide the base filename. If you already have .osil files, you can skip this entire conversion section and its dependencies.
+
+
 ## Project Structure
 - `pwltrex.py`: Main execution script
 - `MIPRef_osilToOnedim.py`: Converts OSIL format to one-dimensional representation 
@@ -131,6 +157,9 @@ The program outputs:
 - `nltree.py`: Nonlinear expression tree implementation
 - `evaluation_solving.py`: Solving utilities
 - `evaluation_statistics.py`: Statistical analysis utilities
+- `instances/convert/`: Utilities for converting AMPL/GAMS files to OSIL format
+  - `convert_nl_to_osil`: Script for converting .nl files to .osil format
+  - `add_optline.py`: Python helper file for conversion
 
 
 ## License
