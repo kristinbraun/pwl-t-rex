@@ -1,5 +1,5 @@
 # PWL-T-Rex
-## Piecewise Linear Tool for Relaxations
+## Piecewise Linear Reformulation Tool for Relaxations
 
 ```text                                                                        
                        @@   @@                                            
