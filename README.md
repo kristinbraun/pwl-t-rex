@@ -184,11 +184,11 @@ Braun, K., & Burlacu, R. (2023). A Computational Study for Piecewise Linear Rela
 
 BibTeX:
 ```bibtex
-@article{braun2023computational,
-    title={A Computational Study for Piecewise Linear Relaxations of Mixed-Integer Nonlinear Programs},
+@article{braun2025computational,
+    title={Benchmarking Piecewise Linear Reformulations for MINLPs: A Computational Study Based on the Open-Source Framework PWL-T-Rex},
     author={Braun, Kristin and Burlacu, Robert},
     journal={Optimization Online},
-    year={2023},
+    year={2025},
     url={https://optimization-online.org/2023/09/a-computational-study-for-piecewise-linear-relaxations-of-mixed-integer-nonlinear-programs/}
 }
 ```
