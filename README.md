@@ -180,7 +180,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) f
 
 If you use PWL-T-Rex in your research, please cite:
 
-Braun, K., & Burlacu, R. (2023). A Computational Study for Piecewise Linear Relaxations of Mixed-Integer Nonlinear Programs. *Optimization Online*. Retrieved from https://optimization-online.org/2023/09/a-computational-study-for-piecewise-linear-relaxations-of-mixed-integer-nonlinear-programs/
+Braun, K., & Burlacu, R. (2025). Benchmarking Piecewise Linear Reformulations for MINLPs: A Computational Study Based on the Open-Source Framework PWL-T-Rex. *Optimization Online*. Retrieved from https://optimization-online.org/2023/09/a-computational-study-for-piecewise-linear-relaxations-of-mixed-integer-nonlinear-programs/
 
 BibTeX:
 ```bibtex
