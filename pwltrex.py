@@ -121,6 +121,17 @@ m = oto.create_pyomomodel_from_OSILdata(oned_rep)
 
 if find_1d:
     one_d_rep_chained_functions = oto.obtain_1d_representation_chained_functions(TESTFILE)
+    #test weise delta!!
+    obtainMIPfrom1d_delta = otm.obtainMIPfrom1d(one_d_rep_chained_functions, epsilon=eps, method=5, relax=relax, breakpoint_creation_method=1)
+    #TODO PWL equidistant
+    # obtainMIPfrom1d with different breakpoint creation method
+    m1d = oto.create_pyomomodel_from_OSILdata(obtainMIPfrom1d_delta)
+    if not create:
+        results_1d = solving.solve_and_store_results(m1d, obtainMIPfrom1d_delta, gur=True)
+    else:
+        results_1d = {}
+    print(results_1d)
+    stats_1d = stats.obtain_statistics(obtainMIPfrom1d_delta)
 
 init_rep = oto.obtain_init_representation(TESTFILE)
 if init:

@@ -87,7 +87,7 @@ def ease_model(in_model):
     return ret_model
 
 
-def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0):
+def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_method=0):
     breakpoints_list = []
     breakpoint_info = []
     additional_cons = []
@@ -135,28 +135,37 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0):
                     assert False  # This should never happen!
         else:
             # find breakpoints
-            f = nltree.get_pyomo_expression(nl["expression"].operation)
-            f = nl["expression"].operation
-            childvar = nl["expression"].children[0]
-            x_low = childvar.lb
-            x_up = childvar.ub
-            (
-                breakpoints,
-                y,
-                errors_low,
-                errors_up,
-                m_vals,
-                t_vals,
-            ) = linrelax.find_breakpoints(f, x_low, x_up, epsilon)
-            # TODO: return interesting stuff about breakpoints
-            breakpoint_info += [
-                {
-                    "breakpoints": breakpoints,
-                    "nl": nl["expression"],
-                    "var": in_model.vars[childvar.idx],
-                }
-            ]
-            breakpoints_list += [(len(breakpoints), x_up - x_low)]
+            if breakpoint_creation_method == 0:
+                f = nltree.get_pyomo_expression(nl["expression"].operation)
+                f = nl["expression"].operation
+                childvar = nl["expression"].children[0]
+                x_low = childvar.lb
+                x_up = childvar.ub
+                (
+                    breakpoints,
+                    y,
+                    errors_low,
+                    errors_up,
+                    m_vals,
+                    t_vals,
+                ) = linrelax.find_breakpoints(f, x_low, x_up, epsilon)
+                # TODO: return interesting stuff about breakpoints
+                breakpoint_info += [
+                    {
+                        "breakpoints": breakpoints,
+                        "nl": nl["expression"],
+                        "var": in_model.vars[childvar.idx],
+                    }
+                ]
+                breakpoints_list += [(len(breakpoints), x_up - x_low)]
+            elif breakpoint_creation_method == 1:
+                assert relax == 0
+                # TODO: Equidistant breakpoints
+                # 1. get pyomo expression and variable
+                # 2. create equidistant breakpoints
+                x_low = None
+                x_up = None
+                pass
 
             if 1 <= method <= 8:
                 # call methods with cur_idx = idx of new constraint
