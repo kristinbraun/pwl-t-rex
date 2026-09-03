@@ -670,8 +670,12 @@ def classical_incremental_method(
     errors_low,
     errors_up,
     relax=True,
+    var=None,
 ):
-    x = expression.children[0]
+    if var is None:
+        x = expression.children[0]
+    else:
+        x = var
     n = len(breakpoints) - 1
     deltas = [
         {"name": add_name + "_delta_" + str(i), "lb": 0, "ub": 1, "type": "C"}

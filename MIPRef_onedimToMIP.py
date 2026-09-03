@@ -87,7 +87,7 @@ def ease_model(in_model):
     return ret_model
 
 
-def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_method=0):
+def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_method=0, num_breakpoints=10):
     breakpoints_list = []
     breakpoint_info = []
     additional_cons = []
@@ -116,6 +116,9 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
         )
         if "coef" in nl:
             coef = nl["coef"]
+
+        expression_reformulated = False   
+
         if nl["expression"].operation is None:
             if isinstance(nl["expression"], nltree.Variable):
                 additional_lins += [
@@ -124,7 +127,10 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
             elif isinstance(nl["expression"], nltree.Number):
                 old_cons[nl["idx"]]["lb"] -= nl["expression"].value * coef
                 old_cons[nl["idx"]]["ub"] -= nl["expression"].value * coef
+            expression_reformulated = True
+        
         elif nl["expression"].operation.symbol == "sum":
+            expression_reformulated = True
             for c in nl["expression"].children:
                 if isinstance(c, nltree.Variable):
                     additional_lins += [(nl["idx"], c.idx, c.coef * coef)]
@@ -132,8 +138,11 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                     old_cons[nl["idx"]]["lb"] -= c.value * coef
                     old_cons[nl["idx"]]["ub"] -= c.value * coef
                 else:
-                    assert False  # This should never happen!
-        else:
+                    assert breakpoint_creation_method == 1 # Functions are not fully flattened
+                    expression_reformulated = False
+                    break
+
+        if not expression_reformulated:
             # find breakpoints
             if breakpoint_creation_method == 0:
                 f = nltree.get_pyomo_expression(nl["expression"].operation)
@@ -160,12 +169,50 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                 breakpoints_list += [(len(breakpoints), x_up - x_low)]
             elif breakpoint_creation_method == 1:
                 assert relax == 0
-                # TODO: Equidistant breakpoints
-                # 1. get pyomo expression and variable
-                # 2. create equidistant breakpoints
-                x_low = None
-                x_up = None
-                pass
+
+                def create_expression(expr):
+                    if isinstance(expr, nltree.Variable):
+                        return expr, lambda x: expr.coef * x
+                    elif isinstance(expr, nltree.Number):
+                        return None, lambda x: expr.value
+                    else:
+                        op = nltree.get_pyomo_expression(expr.operation)
+                        children_expressions = [
+                            create_expression(c) for c in expr.children
+                        ]
+                        # Evaluate children at x first, so operators like
+                        # mullt always receive values, never functions.
+                        return children_expressions[0][0], lambda x: op(
+                            [child(x) for _, child in children_expressions]
+                        )
+                        
+                    
+                childvar, f = create_expression(nl["expression"])
+
+                x_low = childvar.lb
+                x_up = childvar.ub
+                breakpoints = np.linspace(x_low, x_up, num=num_breakpoints, endpoint=True)
+                y = np.zeros(num_breakpoints)
+                for i in range(num_breakpoints):
+                    y[i] = f(breakpoints[i])
+                errors_low = np.zeros(num_breakpoints)
+                errors_up = np.zeros(num_breakpoints)
+                m_vals = np.zeros(num_breakpoints)
+                t_vals = np.zeros(num_breakpoints)
+                for i in range(num_breakpoints - 1):
+                    m = (y[i+1] - y[i]) / (breakpoints[i+1] - breakpoints[i])
+                    t = y[i] - m * breakpoints[i]
+                    m_vals[i] = m
+                    t_vals[i] = t
+                 
+                breakpoint_info += [
+                    {
+                        "breakpoints": breakpoints,
+                        "nl": nl["expression"],
+                        "var": in_model.vars[childvar.idx],
+                    }
+                ]
+                breakpoints_list += [(len(breakpoints), x_up - x_low)]
 
             if 1 <= method <= 8:
                 # call methods with cur_idx = idx of new constraint
@@ -253,6 +300,7 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         errors_low,
                         errors_up,
                         relax=relax,
+                        var=childvar,
                     )
                     ref_lb -= y[0]
                     ref_ub -= y[0]
