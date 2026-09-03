@@ -50,6 +50,7 @@ class Nonlinear_ExpTree:
     operation: Operation
     nl_idx: int
     root_idx: int
+    all_variables: set
 
     def __init__(self, num_children, children, operation, nl_idx=-1, root_idx=-1):
         self.num_children = num_children
@@ -57,6 +58,7 @@ class Nonlinear_ExpTree:
         self.operation = operation
         self.nl_idx = nl_idx
         self.root_idx = root_idx
+        self.all_variables = set()
 
     def __repr__(self):
         res = str(self.operation.symbol) + "("
@@ -70,7 +72,9 @@ class Nonlinear_ExpTree:
     def get_tree(self, level="", last=False):
         res = ""
         res += level + str(self.operation.symbol)
-        res += " (" + str(self.nl_idx) + ", NL-Root " + str(self.root_idx) + ")"
+        if self.operation.num_param is not None:
+            res += " (" + str(self.operation.num_param) + ")"
+        res += " (" + str(self.all_variables) + ")"
         res += "\n"
         for i in range(self.num_children):
             if last:
@@ -112,11 +116,7 @@ class Variable(Nonlinear_ExpTree):
             + str(self.coef)
             + "*var:"
             + str(self.idx)
-            + "] ("
-            + str(self.nl_idx)
-            + ", NL-Root "
-            + str(self.root_idx)
-            + ")\n"
+            + "]\n"
         )
 
     def __init__(self, idx, coef=1, lb=-np.inf, ub=np.inf, nl_idx=-1, root_idx=-1):
@@ -129,6 +129,7 @@ class Variable(Nonlinear_ExpTree):
         self.operation = None
         self.nl_idx = nl_idx
         self.root_idx = root_idx
+        self.all_variables = set()
 
 
 @dataclass
@@ -142,6 +143,7 @@ class Number(Nonlinear_ExpTree):
         self.operation = None
         self.nl_idx = nl_idx
         self.root_idx = root_idx
+        self.all_variables = set()
 
     def __repr__(self):
         return str(self.value)
@@ -150,11 +152,7 @@ class Number(Nonlinear_ExpTree):
         return (
             level
             + str(self.value)
-            + " ("
-            + str(self.nl_idx)
-            + ", NL-Root "
-            + str(self.root_idx)
-            + ")\n"
+            + "\n"
         )
 
 

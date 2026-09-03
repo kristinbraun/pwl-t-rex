@@ -18,6 +18,23 @@ parser.add_argument(
     type=str,
     help="Filename",
 )
+
+parser.add_argument(
+    "--breakpoint_creation",
+    action="store",
+    type=int,
+    default=0,
+    help="How to create the breakpoints? 0: Fixed Epsilon, 1: Fixed Number of Breakpoints",
+)
+
+parser.add_argument(
+    "--breakpoint_number",
+    action="store",
+    type=int,
+    default=10,
+    help="How many breakpoints should be created per nonlinearity?",
+)
+
 parser.add_argument(
     "--epsilon",
     action="store",
@@ -67,6 +84,10 @@ print("Running", TESTFILE)
 
 relax = args.relax
 eps = args.epsilon
+breakpoint_creation = args.breakpoint_creation
+breakpoint_number = args.breakpoint_number
+
+find_1d = breakpoint_creation == 1
 
 oned = mip_method == 0
 init = mip_method == -1
@@ -97,6 +118,9 @@ oned_rep = oto.obtain_1d_representation(TESTFILE)
 easy_rep = otm.ease_model(oned_rep)
 
 m = oto.create_pyomomodel_from_OSILdata(oned_rep)
+
+if find_1d:
+    one_d_rep_chained_functions = oto.obtain_1d_representation_chained_functions(TESTFILE)
 
 init_rep = oto.obtain_init_representation(TESTFILE)
 if init:

@@ -1167,6 +1167,33 @@ def create_pyomomodel_from_OSILdata(rep):
     return model
 
 
+def find_univariate_functions(rep):
+
+    def find_univariate_functions_recursive(exptree):
+        if isinstance(exptree, nltree.Variable):
+            exptree.all_variables.add(exptree.idx)
+            return [exptree.idx]
+        elif isinstance(exptree, nltree.Number):
+            return []
+        else:
+            if exptree.num_children == 1:
+                ret_val = find_univariate_functions_recursive(exptree.children[0])
+                exptree.all_variables.update(ret_val)
+                return ret_val
+            else:
+                ret_val = []
+                for c in exptree.children:
+                    ret_val += find_univariate_functions_recursive(c)
+                exptree.all_variables.update(ret_val)
+                return ret_val
+
+    for i in range(len(rep.nonlinearexprs)):
+        nlin = rep.nonlinearexprs[i]
+        find_univariate_functions_recursive(nlin["expression"])
+
+    return rep 
+
+
 def obtain_init_representation(filename):
     initial_rep = create_datastructures_from_osil(filename)
     return initial_rep
@@ -1180,11 +1207,22 @@ def obtain_1d_and_prod_representation(filename):
     return reform_rep
 
 
-def obtain_1d_representation(filename, ifthen=False):
+def obtain_1d_representation(filename):
     initial_rep = create_datastructures_from_osil(filename)
+    print(initial_rep)
     removedfloats = reformulate_floats_to_coef(initial_rep)
     removedproducts_rep = reformulate_products3(removedfloats)
     removeddivision_rep = reformulate_division(removedproducts_rep)
     reform_rep = reformulate_nonlinearities(removeddivision_rep, debug=False)
     onedim_rep = remove_products2(reform_rep)
+    print(onedim_rep)
     return onedim_rep
+
+
+def obtain_1d_representation_chained_functions(filename):
+    initial_rep = create_datastructures_from_osil(filename)
+    removedfloats = reformulate_floats_to_coef(initial_rep)
+    #TODO find all chained functions with only one input and keep them
+    univ_rep = find_univariate_functions(removedfloats)
+    print(univ_rep)
+    exit()
