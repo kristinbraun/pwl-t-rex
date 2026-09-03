@@ -51,6 +51,8 @@ class Nonlinear_ExpTree:
     nl_idx: int
     root_idx: int
     all_variables: set
+    lb : float
+    ub : float
 
     def __init__(self, num_children, children, operation, nl_idx=-1, root_idx=-1):
         self.num_children = num_children
@@ -59,6 +61,8 @@ class Nonlinear_ExpTree:
         self.nl_idx = nl_idx
         self.root_idx = root_idx
         self.all_variables = set()
+        self.lb = -np.inf
+        self.ub = np.inf
 
     def __repr__(self):
         res = str(self.operation.symbol) + "("
@@ -74,7 +78,8 @@ class Nonlinear_ExpTree:
         res += level + str(self.operation.symbol)
         if self.operation.num_param is not None:
             res += " (" + str(self.operation.num_param) + ")"
-        res += " (" + str(self.all_variables) + ")"
+        if len(self.all_variables) > 0:
+            res += " (" + str(self.all_variables) + ")"
         res += "\n"
         for i in range(self.num_children):
             if last:
@@ -92,8 +97,6 @@ class Nonlinear_ExpTree:
 class Variable(Nonlinear_ExpTree):
     coef: float
     idx: int
-    lb: float
-    ub: float
 
     def __repr__(self):
         return (
@@ -144,6 +147,8 @@ class Number(Nonlinear_ExpTree):
         self.nl_idx = nl_idx
         self.root_idx = root_idx
         self.all_variables = set()
+        self.lb = value
+        self.ub = value
 
     def __repr__(self):
         return str(self.value)

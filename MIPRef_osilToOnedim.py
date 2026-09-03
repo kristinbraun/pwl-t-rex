@@ -326,15 +326,15 @@ def split_product(node):
     return node
 
 
-def remove_products3_from_nonlinearities(exptree):
+def remove_products3_from_nonlinearities(exptree, combine_univariate_functions=False):
     if exptree.num_children == 0:
         return exptree
 
-    if exptree.operation.symbol == "product" and exptree.num_children > 2:
+    if exptree.operation.symbol == "product" and exptree.num_children > 2 and not (combine_univariate_functions and len(exptree.all_variables) == 1):
         exptree = split_product(exptree)
 
     for i in range(exptree.num_children):
-        exptree.children[i] = remove_products3_from_nonlinearities(exptree.children[i])
+        exptree.children[i] = remove_products3_from_nonlinearities(exptree.children[i], combine_univariate_functions)
     return exptree
 
 
@@ -418,13 +418,14 @@ def reformulate_floats_to_coef(in_model):
 
 # reformulates all products with three or more multiplicands
 # for example: prod(x1, x2, x3) -> prod(x1, prod(x2, x3))
-def reformulate_products3(in_model):
+def reformulate_products3(in_model, combine_univariate_functions=False):
     for i in range(len(in_model.nonlinearexprs)):
         in_model.nonlinearexprs[i]["expression"] = reformulate_xabsx(
             in_model.nonlinearexprs[i]["expression"]
         )
         in_model.nonlinearexprs[i]["expression"] = remove_products3_from_nonlinearities(
-            in_model.nonlinearexprs[i]["expression"]
+            in_model.nonlinearexprs[i]["expression"], 
+            combine_univariate_functions
         )
     return in_model
 
@@ -472,7 +473,7 @@ def reformulate_division(in_model):
 # reformulate each nonlinearity that is not a product
 # for this, we introduce new variables
 # for example nl(x1) -> z1 = nl(x1) and use z1 from now on
-def reformulate_nonlinearities(in_model, debug=False):
+def reformulate_nonlinearities(in_model, debug=False, combine_univariate_functions=False):
     artificial_vars = []
     artificial_cons = []
     artificial_lins = []
@@ -482,7 +483,7 @@ def reformulate_nonlinearities(in_model, debug=False):
     bias_considx = len(in_model.cons)
     cur_idx = 0
 
-    def reformulate_nonlinearity(exptree):
+    def reformulate_nonlinearity(exptree, create_artificial_variables=True):
         nonlocal artificial_vars
         nonlocal artificial_nlins
         nonlocal artificial_cons
@@ -502,8 +503,13 @@ def reformulate_nonlinearities(in_model, debug=False):
         if exptree.num_children == 0:
             return exptree
 
+        create_art_children = create_artificial_variables
+
+        if combine_univariate_functions and len(exptree.all_variables) == 1:
+            create_art_children = False
+
         for i in range(exptree.num_children):
-            exptree.children[i] = reformulate_nonlinearity(exptree.children[i])
+            exptree.children[i] = reformulate_nonlinearity(exptree.children[i], create_art_children)
 
         bounds = []
         for i in range(exptree.num_children):
@@ -515,38 +521,45 @@ def reformulate_nonlinearities(in_model, debug=False):
                         max(ch.lb * ch.coef, ch.ub * ch.coef),
                     )
                 ]
-            elif isinstance(exptree.children[i], nltree.Number):
+            elif isinstance(ch, nltree.Number):
                 bounds += [(ch.value, ch.value)]
+            elif isinstance(ch, nltree.Nonlinear_ExpTree):
+                bounds += [(ch.lb, ch.ub)]
         lb, ub = nltree.get_lower_and_upper_bound(exptree.operation, bounds)
+        exptree.lb = lb
+        exptree.ub = ub
 
-        var = {
-            "name": art_name_nl + "_var" + str(cur_idx),
-            "lb": lb,
-            "ub": ub,
-            "type": "C",
-        }
-        con = {"name": art_name_nl + "_con" + str(cur_idx), "lb": 0, "ub": 0}
-        artificial_vars += [var]
-        artificial_cons += [con]
-        artificial_lins += [(cur_idx + bias_considx, cur_idx + bias_varidx, -1)]
-        new_tree = nltree.Nonlinear_ExpTree(
-            num_children=exptree.num_children,
-            children=exptree.children,
-            operation=exptree.operation,
-            nl_idx=exptree.nl_idx,
-            root_idx=exptree.root_idx,
-        )
-        artificial_nlins += [{"idx": cur_idx + bias_considx, "expression": new_tree}]
-        cur_idx += 1
+        if create_artificial_variables:
+            var = {
+                "name": art_name_nl + "_var" + str(cur_idx),
+                "lb": lb,
+                "ub": ub,
+                "type": "C",
+            }
+            con = {"name": art_name_nl + "_con" + str(cur_idx), "lb": 0, "ub": 0}
+            artificial_vars += [var]
+            artificial_cons += [con]
+            artificial_lins += [(cur_idx + bias_considx, cur_idx + bias_varidx, -1)]
+            new_tree = nltree.Nonlinear_ExpTree(
+                num_children=exptree.num_children,
+                children=exptree.children,
+                operation=exptree.operation,
+                nl_idx=exptree.nl_idx,
+                root_idx=exptree.root_idx,
+            )
+            artificial_nlins += [{"idx": cur_idx + bias_considx, "expression": new_tree}]
+            cur_idx += 1
 
-        return nltree.Variable(
-            idx=bias_varidx + cur_idx - 1,
-            coef=1,
-            lb=lb,
-            ub=ub,
-            nl_idx=-5,
-            root_idx=exptree.root_idx,
-        )
+            return nltree.Variable(
+                idx=bias_varidx + cur_idx - 1,
+                coef=1,
+                lb=lb,
+                ub=ub,
+                nl_idx=-5,
+                root_idx=exptree.root_idx,
+            )
+        else:
+            return exptree
 
     for i in range(len(in_model.nonlinearexprs)):
         in_model.nonlinearexprs[i]["expression"] = reformulate_nonlinearity(
@@ -566,7 +579,7 @@ def reformulate_nonlinearities(in_model, debug=False):
 
 
 # reformulate xy to 1/2(p^2 - x^2 - y^2) and p = x+y
-def remove_products2(in_model):
+def remove_products2(in_model, combine_univariate_functions=False):
     additional_cons = []
     additional_vars = []
     additional_lins = []
@@ -604,8 +617,11 @@ def remove_products2(in_model):
         if exptree.operation.symbol == "product":
             c1 = exptree.children[0]
             c2 = exptree.children[1]
+
             if isinstance(c1, nltree.Variable) and isinstance(c2, nltree.Variable):
                 if c1.idx == c2.idx:
+                    if combine_univariate_functions and len(exptree.all_variables) == 1:
+                        return exptree
                     if c1.idx in sq_dict:
                         xs_idx, xs = sq_dict[c1.idx]
                     else:
@@ -988,7 +1004,7 @@ def remove_products2(in_model):
                 )
                 return return_var
             else:
-                assert exptree.num_children == 2
+                assert exptree.num_children == 2 or (combine_univariate_functions and len(exptree.all_variables) == 1)
                 if isinstance(exptree.children[0], nltree.Number):
                     assert isinstance(exptree.children[1], nltree.Variable)
                     exptree.children[1].coef *= exptree.children[0].value
@@ -997,6 +1013,8 @@ def remove_products2(in_model):
                     assert isinstance(exptree.children[0], nltree.Variable)
                     exptree.children[0].coef *= exptree.children[1].value
                     return exptree.children[0]
+                elif combine_univariate_functions and len(exptree.all_variables) == 1:
+                    return exptree
         else:
             for i in range(exptree.num_children):
                 exptree.children[i] = remove_products2_from_nonlinearities(
@@ -1209,13 +1227,11 @@ def obtain_1d_and_prod_representation(filename):
 
 def obtain_1d_representation(filename):
     initial_rep = create_datastructures_from_osil(filename)
-    print(initial_rep)
     removedfloats = reformulate_floats_to_coef(initial_rep)
     removedproducts_rep = reformulate_products3(removedfloats)
     removeddivision_rep = reformulate_division(removedproducts_rep)
     reform_rep = reformulate_nonlinearities(removeddivision_rep, debug=False)
     onedim_rep = remove_products2(reform_rep)
-    print(onedim_rep)
     return onedim_rep
 
 
@@ -1223,6 +1239,9 @@ def obtain_1d_representation_chained_functions(filename):
     initial_rep = create_datastructures_from_osil(filename)
     removedfloats = reformulate_floats_to_coef(initial_rep)
     #TODO find all chained functions with only one input and keep them
-    univ_rep = find_univariate_functions(removedfloats)
-    print(univ_rep)
-    exit()
+    univ_rep3 = find_univariate_functions(removedfloats)
+    univ_rep = reformulate_products3(univ_rep3, combine_univariate_functions=True)
+    reform_rep = reformulate_nonlinearities(univ_rep, debug=False, combine_univariate_functions=True)
+    onedim_rep = remove_products2(reform_rep, combine_univariate_functions=True)
+    print(onedim_rep.nonlinearexprs)
+    return onedim_rep
