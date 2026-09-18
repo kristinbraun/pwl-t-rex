@@ -319,6 +319,8 @@ def split_product(node):
             node.operation,
             nl_idx=node.nl_idx,
             root_idx=node.root_idx,
+            all_variables=set([c for clist in node.children[1:] for c in clist.all_variables])
+       
         )
     )
     node.num_children = 2
@@ -379,6 +381,7 @@ def reformulate_xabsx(exptree):
                     operation=nltree.expressions["xabsx"],
                     nl_idx=exptree.nl_idx,
                     root_idx=exptree.root_idx,
+                    all_variables=newvarchild.all_variables,
                 )
                 break
 
@@ -439,6 +442,7 @@ def remove_div(node):
         nltree.expressions["inverse"],
         nl_idx=node.nl_idx,
         root_idx=node.root_idx,
+        all_variables=right.all_variables,
     )
     return nltree.Nonlinear_ExpTree(
         2,
@@ -446,6 +450,7 @@ def remove_div(node):
         nltree.expressions["product"],
         nl_idx=node.nl_idx,
         root_idx=node.root_idx,
+        all_variables=set(node.all_variables),
     )
 
 
@@ -528,6 +533,7 @@ def reformulate_nonlinearities(in_model, debug=False, combine_univariate_functio
         lb, ub = nltree.get_lower_and_upper_bound(exptree.operation, bounds)
         exptree.lb = lb
         exptree.ub = ub
+        exptree.all_variables = set([c for clist in exptree.children for c in clist.all_variables])
 
         if create_artificial_variables:
             var = {
@@ -546,6 +552,7 @@ def reformulate_nonlinearities(in_model, debug=False, combine_univariate_functio
                 operation=exptree.operation,
                 nl_idx=exptree.nl_idx,
                 root_idx=exptree.root_idx,
+                all_variables=exptree.all_variables,
             )
             artificial_nlins += [{"idx": cur_idx + bias_considx, "expression": new_tree}]
             cur_idx += 1
@@ -605,6 +612,9 @@ def remove_products2(in_model, combine_univariate_functions=False):
         nonlocal cur_varidx
         nonlocal cur_considx
 
+        #if combine_univariate_functions and len(exptree.all_variables) == 1:
+        #    return exptree
+
         add_name_nl = (
             add_name + "_NL_IDX_" + str(exptree.nl_idx) + "_COUNT_"
             if exptree.nl_idx != -1
@@ -620,8 +630,6 @@ def remove_products2(in_model, combine_univariate_functions=False):
 
             if isinstance(c1, nltree.Variable) and isinstance(c2, nltree.Variable):
                 if c1.idx == c2.idx:
-                    if combine_univariate_functions and len(exptree.all_variables) == 1:
-                        return exptree
                     if c1.idx in sq_dict:
                         xs_idx, xs = sq_dict[c1.idx]
                     else:
@@ -656,6 +664,7 @@ def remove_products2(in_model, combine_univariate_functions=False):
                             operation=nltree.expressions["square"],
                             nl_idx=exptree.nl_idx,
                             root_idx=exptree.root_idx,
+                            all_variables=set([c1.idx]),
                         )
                         additional_nlins += [
                             {"idx": cur_considx + bias_considx, "expression": new_tree}
@@ -982,6 +991,7 @@ def remove_products2(in_model, combine_univariate_functions=False):
                     operation=nltree.expressions["sum"],
                     nl_idx=exptree.nl_idx,
                     root_idx=exptree.root_idx,
+                    all_variables=set([c for clist in child_list for c in clist.all_variables])
                 )
                 additional_nlins += [
                     {"idx": cur_considx + bias_considx, "expression": new_tree}
@@ -1050,20 +1060,34 @@ def remove_products2(in_model, combine_univariate_functions=False):
                     operation=nltree.expressions["product"],
                     nl_idx=len(new_linex) + len(in_model.nonlinearexprs),
                     root_idx=len(new_linex) + len(in_model.nonlinearexprs),
+                    all_variables=set([v1, v2]),
                 ),
             }
         ]
 
     for i in range(len(in_model.nonlinearexprs)):
+        if combine_univariate_functions and len(in_model.nonlinearexprs[i]["expression"].all_variables) == 1:
+            continue
         in_model.nonlinearexprs[i]["expression"] = remove_products2_from_nonlinearities(
             in_model.nonlinearexprs[i]["expression"]
         )
 
     for i in range(len(new_linex)):
-        new_linex[i]["expression"] = remove_products2_from_nonlinearities(
-            new_linex[i]["expression"], coef_prod=new_linex[i]["coef"]
-        )
-        new_linex[i]["coef"] = 1
+        if combine_univariate_functions and len(new_linex[i]["expression"].all_variables) == 1:
+            new_linex[i]["expression"] = nltree.Nonlinear_ExpTree(
+                num_children=1,
+                children=[new_linex[i]["expression"].children[0]],
+                operation=nltree.expressions["square"],
+                nl_idx=new_linex[i]["expression"].nl_idx,
+                root_idx=new_linex[i]["expression"].root_idx,
+                all_variables=new_linex[i]["expression"].all_variables,
+            )
+            new_linex[i]["expression"].children[0].coef = np.sqrt(new_linex[i]["coef"])
+        else:
+            new_linex[i]["expression"] = remove_products2_from_nonlinearities(
+                new_linex[i]["expression"], coef_prod=new_linex[i]["coef"]
+            )
+            new_linex[i]["coef"] = 1
 
     ret_model = OSILData(
         in_model.vars + additional_vars,
@@ -1189,7 +1213,6 @@ def find_univariate_functions(rep):
 
     def find_univariate_functions_recursive(exptree):
         if isinstance(exptree, nltree.Variable):
-            exptree.all_variables.add(exptree.idx)
             return [exptree.idx]
         elif isinstance(exptree, nltree.Number):
             return []
@@ -1242,6 +1265,6 @@ def obtain_1d_representation_chained_functions(filename):
     univ_rep3 = find_univariate_functions(removedfloats)
     univ_rep = reformulate_products3(univ_rep3, combine_univariate_functions=True)
     reform_rep = reformulate_nonlinearities(univ_rep, debug=False, combine_univariate_functions=True)
+    #return reform_rep
     onedim_rep = remove_products2(reform_rep, combine_univariate_functions=True)
-    print(onedim_rep.nonlinearexprs)
     return onedim_rep

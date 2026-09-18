@@ -17,8 +17,12 @@ def disaggregated_convex_combination_model(
     errors_low,
     errors_up,
     relax=True,
+    var=None,
 ):
-    x = expression.children[0]
+    if var is None:
+        x = expression.children[0]
+    else:
+        x = var
     n = len(breakpoints) - 1
     lambda1 = [
         {"name": add_name + "_lambda_left_" + str(i), "lb": 0, "ub": 1, "type": "C"}
@@ -127,8 +131,12 @@ def logarithmic_disaggregated_convex_combination_model(
     errors_low,
     errors_up,
     relax=True,
+    var=None,
 ):
-    x = expression.children[0]
+    if var is None:
+        x = expression.children[0]
+    else:
+        x = var
     n = len(breakpoints) - 1
     n_L = int(np.ceil(np.log2(n)))
     lambda1 = [
@@ -263,8 +271,12 @@ def aggregated_convex_combination_model(
     errors_low,
     errors_up,
     relax=True,
+    var=None,
 ):
-    x = expression.children[0]
+    if var is None:
+        x = expression.children[0]
+    else:
+        x = var
     n = len(breakpoints) - 1
     lambdas = [
         {"name": add_name + "_lambda_" + str(i), "lb": 0, "ub": 1, "type": "C"}
@@ -395,8 +407,12 @@ def logarithmic_aggregated_convex_combination_model(
     errors_low,
     errors_up,
     relax=True,
+    var=None,
 ):
-    x = expression.children[0]
+    if var is None:
+        x = expression.children[0]
+    else:
+        x = var
     n = len(breakpoints) - 1
     n_L = max(1, int(np.ceil(np.log2(n))))
     lambdas = [
@@ -817,8 +833,12 @@ def multiple_choice_model(
     errors_low,
     errors_up,
     relax=True,
+    var=None,
 ):
-    x = expression.children[0]
+    if var is None:
+        x = expression.children[0]
+    else:
+        x = var
     n = len(breakpoints) - 1
 
     x_vars = [
@@ -925,8 +945,12 @@ def binary_zig_zag_model(
     errors_low,
     errors_up,
     relax=True,
+    var=None,
 ):
-    x = expression.children[0]
+    if var is None:
+        x = expression.children[0]
+    else:
+        x = var
     n = len(breakpoints) - 1
     r = 1 if n <= 1 else max(1, int(np.ceil(np.log2(n))))
     lambdas = [
@@ -1079,8 +1103,12 @@ def general_integer_zig_zag_model(
     errors_low,
     errors_up,
     relax=True,
+    var=None,
 ):
-    x = expression.children[0]
+    if var is None:
+        x = expression.children[0]
+    else:
+        x = var
     n = len(breakpoints) - 1
     r = 1 if n <= 1 else max(1, int(np.ceil(np.log2(n))))
     lambdas = [

@@ -54,13 +54,13 @@ class Nonlinear_ExpTree:
     lb : float
     ub : float
 
-    def __init__(self, num_children, children, operation, nl_idx=-1, root_idx=-1):
+    def __init__(self, num_children, children, operation, nl_idx=-1, root_idx=-1, all_variables=set()):
         self.num_children = num_children
         self.children = children
         self.operation = operation
         self.nl_idx = nl_idx
         self.root_idx = root_idx
-        self.all_variables = set()
+        self.all_variables = all_variables.copy()
         self.lb = -np.inf
         self.ub = np.inf
 
@@ -132,7 +132,7 @@ class Variable(Nonlinear_ExpTree):
         self.operation = None
         self.nl_idx = nl_idx
         self.root_idx = root_idx
-        self.all_variables = set()
+        self.all_variables = set([self.idx])
 
 
 @dataclass

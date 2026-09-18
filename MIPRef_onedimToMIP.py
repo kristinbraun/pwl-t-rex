@@ -40,7 +40,7 @@ def obtain_combined_breakpoints(in_model, epsilon=1):
     return breakpoints_list
 
 
-def ease_model(in_model):
+def ease_model(in_model, use_univariate_functions=False):
     old_cons = []
     for c in in_model.cons:
         old_cons += [copy.copy(c)]
@@ -65,6 +65,9 @@ def ease_model(in_model):
                 old_cons[nl["idx"]]["lb"] -= nl["expression"].value * coef
                 old_cons[nl["idx"]]["ub"] -= nl["expression"].value * coef
         elif nl["expression"].operation.symbol == "sum":
+            if use_univariate_functions:
+                if len(nl["expression"].all_variables) == 1:
+                    continue
             for c in nl["expression"].children:
                 if isinstance(c, nltree.Variable):
                     additional_lins += [(nl["idx"], c.idx, c.coef * coef)]
@@ -202,8 +205,8 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                 for i in range(num_breakpoints - 1):
                     m = (y[i+1] - y[i]) / (breakpoints[i+1] - breakpoints[i])
                     t = y[i] - m * breakpoints[i]
-                    m_vals[i] = m
-                    t_vals[i] = t
+                    m_vals[i+1] = m
+                    t_vals[i+1] = t
                  
                 breakpoint_info += [
                     {
@@ -236,6 +239,7 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         errors_low,
                         errors_up,
                         relax=relax,
+                        var=childvar,
                     )
                 elif method == 2:
                     (
@@ -253,6 +257,7 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         errors_low,
                         errors_up,
                         relax=relax,
+                        var=childvar,
                     )
                 elif method == 3:
                     (
@@ -270,6 +275,7 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         errors_low,
                         errors_up,
                         relax=relax,
+                        var=childvar,
                     )
                 elif method == 4:
                     (
@@ -287,6 +293,7 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         errors_low,
                         errors_up,
                         relax=relax,
+                        var=childvar,
                     )
                 elif method == 5:
                     new_vars, new_cons, new_lins = miprep.classical_incremental_method(
@@ -319,6 +326,7 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         errors_low,
                         errors_up,
                         relax=relax,
+                        var=childvar,
                     )
 
                 elif method == 7:
@@ -335,6 +343,7 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         errors_low,
                         errors_up,
                         relax=relax,
+                        var=childvar,
                     )
                 elif method == 8:
                     new_vars, new_cons, new_lins = miprep.general_integer_zig_zag_model(
@@ -350,6 +359,7 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         errors_low,
                         errors_up,
                         relax=relax,
+                        var=childvar,
                     )
 
                 # create new variable z

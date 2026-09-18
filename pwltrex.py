@@ -3,6 +3,7 @@ import MIPRef_onedimToMIP as otm
 import evaluation_solving as solving
 import evaluation_statistics as stats
 import argparse
+import numpy as np
 
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument(
@@ -114,39 +115,32 @@ if mip_method == -5:
 
 integer = integer and (relax != 1)
 
-oned_rep = oto.obtain_1d_representation(TESTFILE)
-easy_rep = otm.ease_model(oned_rep)
+if find_1d:
+    oned_rep = oto.obtain_1d_representation_chained_functions(TESTFILE)
+    easy_rep = oned_rep #otm.ease_model(oned_rep, use_univariate_functions=True)
+else:
+    oned_rep = oto.obtain_1d_representation(TESTFILE)
+    easy_rep = otm.ease_model(oned_rep, use_univariate_functions=False)
 
 m = oto.create_pyomomodel_from_OSILdata(oned_rep)
 
-if find_1d:
-    one_d_rep_chained_functions = oto.obtain_1d_representation_chained_functions(TESTFILE)
-    #test weise delta!!
-    obtainMIPfrom1d_delta, breakpoints_delta, breakpoint_info_delta = otm.obtainMIPfrom1d(one_d_rep_chained_functions, epsilon=eps, method=5, relax=relax, breakpoint_creation_method=1, num_breakpoints=breakpoint_number)
-    #TODO PWL equidistant
-    # obtainMIPfrom1d with different breakpoint creation method
-    m1d = oto.create_pyomomodel_from_OSILdata(obtainMIPfrom1d_delta)
-    if not create:
-        results_1d = solving.solve_and_store_results(m1d, obtainMIPfrom1d_delta, gur=True)
-    else:
-        results_1d = {}
-    print(results_1d)
-    stats_1d = stats.obtain_statistics(obtainMIPfrom1d_delta)
 
 init_rep = oto.obtain_init_representation(TESTFILE)
+minit = oto.create_pyomomodel_from_OSILdata(init_rep)
 if init:
     if not create:
-        results_init = solving.solve_and_store_results(m, init_rep, gur=False)
+        results_init = solving.solve_and_store_results(minit, init_rep, gur=False)
     else:
         results_init = {}
 stats_init = stats.obtain_statistics(init_rep)
+
 
 oned_prod = oto.obtain_1d_and_prod_representation(TESTFILE)
 stats_1d_prod = stats.obtain_statistics(oned_prod)
 
 if oned:
     if not create:
-        results_1d = solving.solve_and_store_results(m, oned_rep, gur=False)
+        results_1d = solving.solve_and_store_results(m, oned_rep, gur=True)
     else:
         results_1d = {}
 stats_1d = stats.obtain_statistics(oned_rep)
@@ -154,7 +148,7 @@ stats_1d = stats.obtain_statistics(oned_rep)
 if disagg_convex:
     print("Disaggregated Convex Combination Model")
     mip_rep1, breakpoints1, breakpoint_info1 = otm.obtainMIPfrom1d(
-        easy_rep, epsilon=eps, method=1, relax=relax
+        easy_rep, epsilon=eps, method=1, relax=relax, breakpoint_creation_method=breakpoint_creation, num_breakpoints=breakpoint_number
     )
     m1 = oto.create_pyomomodel_from_OSILdata(mip_rep1)
 
@@ -170,7 +164,7 @@ if disagg_convex:
 if log_disagg_convex:
     print("Logarithmic Disaggregated Convex Combination Model")
     mip_rep2, breakpoints2, breakpoint_info2 = otm.obtainMIPfrom1d(
-        easy_rep, epsilon=eps, method=2, relax=relax
+        easy_rep, epsilon=eps, method=2, relax=relax, breakpoint_creation_method=breakpoint_creation, num_breakpoints=breakpoint_number
     )
     m2 = oto.create_pyomomodel_from_OSILdata(mip_rep2)
 
@@ -188,7 +182,7 @@ if agg_convex:
     print("Aggregated Convex Combination Model")
 
     mip_rep3, breakpoints3, breakpoint_info3 = otm.obtainMIPfrom1d(
-        easy_rep, epsilon=eps, method=3, relax=relax
+        easy_rep, epsilon=eps, method=3, relax=relax, breakpoint_creation_method=breakpoint_creation, num_breakpoints=breakpoint_number
     )
     m3 = oto.create_pyomomodel_from_OSILdata(mip_rep3)
 
@@ -205,7 +199,7 @@ if agg_convex:
 if log_agg_convex:
     print("Logarithmic Aggregated Convex Combination Model")
     mip_rep4, breakpoints4, breakpoint_info4 = otm.obtainMIPfrom1d(
-        easy_rep, epsilon=eps, method=4, relax=relax
+        easy_rep, epsilon=eps, method=4, relax=relax, breakpoint_creation_method=breakpoint_creation, num_breakpoints=breakpoint_number
     )
     m4 = oto.create_pyomomodel_from_OSILdata(mip_rep4)
 
@@ -222,9 +216,10 @@ if log_agg_convex:
 if delta:
     print("Incremental Method")
     mip_rep5, breakpoints5, breakpoint_info5 = otm.obtainMIPfrom1d(
-        easy_rep, epsilon=eps, method=5, relax=relax
+        easy_rep, epsilon=eps, method=5, relax=relax, breakpoint_creation_method=breakpoint_creation, num_breakpoints=breakpoint_number
     )
     m5 = oto.create_pyomomodel_from_OSILdata(mip_rep5)
+    m5.write("mip_rep5.lp")
 
     stats_mip5 = stats.obtain_statistics(mip_rep5)
 
@@ -239,7 +234,7 @@ if delta:
 if multiple_choice:
     print("Multiple Choice Model")
     mip_rep6, breakpoints6, breakpoint_info6 = otm.obtainMIPfrom1d(
-        easy_rep, epsilon=eps, method=6, relax=relax
+        easy_rep, epsilon=eps, method=6, relax=relax, breakpoint_creation_method=breakpoint_creation, num_breakpoints=breakpoint_number
     )
     m6 = oto.create_pyomomodel_from_OSILdata(mip_rep6)
 
@@ -256,7 +251,7 @@ if multiple_choice:
 if binary:
     print("Binary Zig Zag Model")
     mip_rep7, breakpoints7, breakpoint_info7 = otm.obtainMIPfrom1d(
-        easy_rep, epsilon=eps, method=7, relax=relax
+        easy_rep, epsilon=eps, method=7, relax=relax, breakpoint_creation_method=breakpoint_creation, num_breakpoints=breakpoint_number
     )
     m7 = oto.create_pyomomodel_from_OSILdata(mip_rep7)
 
@@ -272,7 +267,7 @@ if binary:
 if integer:
     print("Integer Zig Zag Model")
     mip_rep8, breakpoints8, breakpoint_info8 = otm.obtainMIPfrom1d(
-        easy_rep, epsilon=eps, method=8, relax=relax
+        easy_rep, epsilon=eps, method=8, relax=relax, breakpoint_creation_method=breakpoint_creation, num_breakpoints=breakpoint_number
     )
     m8 = oto.create_pyomomodel_from_OSILdata(mip_rep8)
 
@@ -286,148 +281,102 @@ if integer:
         results_mip8 = {}
 
 
+def print_results(results, model_name, name_width=53):
+    # Normalize the model name output for consistent alignment
+    name_str = f"{model_name}:".ljust(name_width)
+    if results["status"] in ["ERROR"]:
+        print(f"{name_str} no solution found.")
+    elif results["status"] in ["INFEASIBLE", "UNBOUNDED"]:
+        print(
+            f"{name_str} Runtime [s]: {results['time']:<8.2f}"
+        )
+    else:
+        first_primal = results["time_firstprimal"]
+        first_primal_str = (
+            f"{first_primal:<8.2f}" if first_primal is not None else "n/a"
+        )
+        print(
+            f"{name_str} Objective: {results['objective']:<15.6f}    Runtime [s]: {results['time']:<8.2f}, first primal: {first_primal_str}"
+        )
+
 if init and not create:
-    print(
-        "initial formulation:                                   ",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}".format(
-            results_init["objective"], results_init["time"]
-        ),
-    )
+    print_results(results_init, "initial formulation")  
 if oned and not create:
-    print(
-        "1D formulation:                                        ",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}".format(
-            results_1d["objective"], results_1d["time"]
-        ),
-    )
+    print_results(results_1d, "1D formulation")
 if disagg_convex and not create:
-    print(
-        "disaggregated_convex_combination_model:            ",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}, first primal: {:<8.2f}".format(
-            results_mip["objective"],
-            results_mip["time"],
-            results_mip["time_firstprimal"],
-        ),
+    print_results(results_mip, "disaggregated_convex_combination_model")
+if log_disagg_convex and not create:
+    print_results(results_mip2, "logarithmic_disaggregated_convex_combination_model")
+if agg_convex and not create:
+    print_results(results_mip3, "aggregated_convex_combination_model")
+if log_agg_convex and not create:
+    print_results(results_mip4, "logarithmic_aggregated_convex_combination_model")
+if delta and not create:
+    print_results(results_mip5, "incremental_method")
+if multiple_choice and not create:
+    print_results(results_mip6, "multiple_choice_model")
+if binary and not create:
+    print_results(results_mip7, "binary_zig_zag_model")
+if integer and not create:
+    print_results(results_mip8, "integer_zig_zag_model")
+
+# Collect all times and objectives that were printed
+results_dict = {}
+if disagg_convex and not create:
+    results_dict["disaggregated_convex_combination_model"] = (
+        results_mip["time"] if results_mip["status"] in ["OPTIMAL", "TIMELIMIT"] else np.inf,
+        results_mip["time_firstprimal"] if results_mip["time_firstprimal"] is not None else np.inf,
     )
 if log_disagg_convex and not create:
-    print(
-        "logarithmic_disaggregated_convex_combination_model:",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}, first primal: {:<8.2f}".format(
-            results_mip2["objective"],
-            results_mip2["time"],
-            results_mip2["time_firstprimal"],
-        ),
+    results_dict["logarithmic_disaggregated_convex_combination_model"] = (
+        results_mip2["time"] if results_mip2["status"] in ["OPTIMAL", "TIMELIMIT"] else np.inf,
+        results_mip2["time_firstprimal"] if results_mip2["time_firstprimal"] is not None else np.inf,
     )
 if agg_convex and not create:
-    print(
-        "aggregated_convex_combination_model:               ",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}, first primal: {:<8.2f}".format(
-            results_mip3["objective"],
-            results_mip3["time"],
-            results_mip3["time_firstprimal"],
-        ),
+    results_dict["aggregated_convex_combination_model"] = (
+        results_mip3["time"] if results_mip3["status"] in ["OPTIMAL", "TIMELIMIT"] else np.inf,
+        results_mip3["time_firstprimal"] if results_mip3["time_firstprimal"] is not None else np.inf,
     )
 if log_agg_convex and not create:
-    print(
-        "logarithmic_aggregated_convex_combination_model:   ",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}, first primal: {:<8.2f}".format(
-            results_mip4["objective"],
-            results_mip4["time"],
-            results_mip4["time_firstprimal"],
-        ),
+    results_dict["logarithmic_aggregated_convex_combination_model"] = (
+        results_mip4["time"] if results_mip4["status"] in ["OPTIMAL", "TIMELIMIT"] else np.inf,
+        results_mip4["time_firstprimal"] if results_mip4["time_firstprimal"] is not None else np.inf,
     )
 if delta and not create:
-    print(
-        "classical_incremental_method:                      ",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}, first primal: {:<8.2f}".format(
-            results_mip5["objective"],
-            results_mip5["time"],
-            results_mip5["time_firstprimal"],
-        ),
+    results_dict["incremental_method"] = (
+        results_mip5["time"] if results_mip5["status"] in ["OPTIMAL", "TIMELIMIT"] else np.inf,
+        results_mip5["time_firstprimal"] if results_mip5["time_firstprimal"] is not None else np.inf,
     )
 if multiple_choice and not create:
-    print(
-        "multiple_choice_model:                             ",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}, first primal: {:<8.2f}".format(
-            results_mip6["objective"],
-            results_mip6["time"],
-            results_mip6["time_firstprimal"],
-        ),
+    results_dict["multiple_choice_model"] = (
+        results_mip6["time"] if results_mip6["status"] in ["OPTIMAL", "TIMELIMIT"] else np.inf,
+        results_mip6["time_firstprimal"] if results_mip6["time_firstprimal"] is not None else np.inf,
     )
 if binary and not create:
-    print(
-        "binary_zig_zag_model:                              ",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}, first primal: {:<8.2f}".format(
-            results_mip7["objective"],
-            results_mip7["time"],
-            results_mip7["time_firstprimal"],
-        ),
+    results_dict["binary_zig_zag_model"] = (
+        results_mip7["time"] if results_mip7["status"] in ["OPTIMAL", "TIMELIMIT"] else np.inf,
+        results_mip7["time_firstprimal"] if results_mip7["time_firstprimal"] is not None else np.inf,
     )
 if integer and not create:
-    print(
-        "general_integer_zig_zag_model:                     ",
-        "Objective: {:<15.6f}    Runtime [s]: {:<8.2f}, first primal: {:<8.2f}".format(
-            results_mip8["objective"],
-            results_mip8["time"],
-            results_mip8["time_firstprimal"],
-        ),
+    results_dict["integer_zig_zag_model"] = (
+        results_mip8["time"] if results_mip8["status"] in ["OPTIMAL", "TIMELIMIT"] else np.inf,
+        results_mip8["time_firstprimal"] if results_mip8["time_firstprimal"] is not None else np.inf,
     )
 
-    # Collect all times and objectives that were printed
-    results_dict = {}
-    if disagg_convex and not create:
-        results_dict["disaggregated_convex_combination_model"] = (
-            results_mip["time"],
-            results_mip["time_firstprimal"],
-        )
-    if log_disagg_convex and not create:
-        results_dict["logarithmic_disaggregated_convex_combination_model"] = (
-            results_mip2["time"],
-            results_mip2["time_firstprimal"],
-        )
-    if agg_convex and not create:
-        results_dict["aggregated_convex_combination_model"] = (
-            results_mip3["time"],
-            results_mip3["time_firstprimal"],
-        )
-    if log_agg_convex and not create:
-        results_dict["logarithmic_aggregated_convex_combination_model"] = (
-            results_mip4["time"],
-            results_mip4["time_firstprimal"],
-        )
-    if delta and not create:
-        results_dict["incremental_method"] = (
-            results_mip5["time"],
-            results_mip5["time_firstprimal"],
-        )
-    if multiple_choice and not create:
-        results_dict["multiple_choice_model"] = (
-            results_mip6["time"],
-            results_mip6["time_firstprimal"],
-        )
-    if binary and not create:
-        results_dict["binary_zig_zag_model"] = (
-            results_mip7["time"],
-            results_mip7["time_firstprimal"],
-        )
-    if integer and not create:
-        results_dict["integer_zig_zag_model"] = (
-            results_mip8["time"],
-            results_mip8["time_firstprimal"],
-        )
+print(results_dict)
 
-    print(results_dict)
+# Sort by time and print order
+print("\nSorted by solution time:")
 
-    # Sort by time and print order
-    print("\nSorted by solution time:")
-    sorted_results = sorted(results_dict.items(), key=lambda x: x[1][0])
-    for i, (model, time) in enumerate(sorted_results, 1):
-        model_name = model.replace("_", " ").title()
-        print(f"{i:2d}. {model_name:<50} {time[0]:>8.2f}s")
+# Sort the ones with solutions by solution time
+sorted_results = sorted(results_dict.items(), key=lambda x: x[1][0])
+for i, (model, time) in enumerate(sorted_results, 1):
+    model_name = model.replace("_", " ").title()
+    print(f"{i:2d}. {model_name:<50} {time[0]:>8.2f}s")
 
-    # Sort by first primal time and print order
-    print("\nSorted by time until first primal solution was found:")
-    sorted_results = sorted(results_dict.items(), key=lambda x: x[1][1])
-    for i, (model, time) in enumerate(sorted_results, 1):
-        model_name = model.replace("_", " ").title()
-        print(f"{i:2d}. {model_name:<50} {time[1]:>8.2f}s")
+# Sort by first primal time and print order
+print("\nSorted by time until first primal solution was found:")
+sorted_results = sorted(results_dict.items(), key=lambda x: x[1][1])
+for i, (model, time) in enumerate(sorted_results, 1):
+    model_name = model.replace("_", " ").title()
+    print(f"{i:2d}. {model_name:<50} {time[1]:>8.2f}s")

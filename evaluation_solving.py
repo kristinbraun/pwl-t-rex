@@ -120,7 +120,7 @@ def solve_and_store_results(pyo_model, rep, gur=False):
             )
             solving_results["gap"] = np.abs(
                 res.problem.upper_bound - res.problem.lower_bound
-            ) / (np.abs(solving_results["objective"] + 1e-10))
+            ) / (np.abs(solving_results["objective"]) + 1e-10)
             solving_results["status"] = "TIMELIMIT"
             if gur:
                 solving_results["time"] = opt.get_model_attr("Runtime")
