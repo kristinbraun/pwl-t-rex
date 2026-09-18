@@ -5,6 +5,7 @@ import datastructure_nonlinearTree as nltree
 import MIPRef_osilToOnedim as oto
 import MIPRef_linearRelaxation as linrelax
 import numpy as np
+import settings
 
 
 # Methods:
@@ -18,7 +19,7 @@ import numpy as np
 # 8: Integer Zig-Zag
 
 
-def obtain_combined_breakpoints(in_model, epsilon=1):
+def obtain_combined_breakpoints(in_model):
     breakpoints = {}  # var -> list(breakpoints)
     nonlinearities = {}
     breakpoints_list = []
@@ -90,7 +91,11 @@ def ease_model(in_model, use_univariate_functions=False):
     return ret_model
 
 
-def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_method=0, num_breakpoints=10):
+def obtainMIPfrom1d(in_model, method=1):
+    epsilon = settings.epsilon
+    relax = settings.relax
+    breakpoint_creation_method = settings.breakpoint_creation
+    num_breakpoints = settings.breakpoint_number
     breakpoints_list = []
     breakpoint_info = []
     additional_cons = []
@@ -185,10 +190,15 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         ]
                         # Evaluate children at x first, so operators like
                         # mullt always receive values, never functions.
-                        return children_expressions[0][0], lambda x: op(
+                        ret1 = None
+                        for (c, _) in children_expressions:
+                            if c is not None:
+                                ret1 = c
+                                break
+                        ret2 = lambda x: op(
                             [child(x) for _, child in children_expressions]
                         )
-                        
+                        return ret1, ret2
                     
                 childvar, f = create_expression(nl["expression"])
 
@@ -238,7 +248,6 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         bias_considx + 1,
                         errors_low,
                         errors_up,
-                        relax=relax,
                         var=childvar,
                     )
                 elif method == 2:
@@ -256,7 +265,6 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         bias_considx + 1,
                         errors_low,
                         errors_up,
-                        relax=relax,
                         var=childvar,
                     )
                 elif method == 3:
@@ -274,7 +282,6 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         bias_considx + 1,
                         errors_low,
                         errors_up,
-                        relax=relax,
                         var=childvar,
                     )
                 elif method == 4:
@@ -292,7 +299,6 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         bias_considx + 1,
                         errors_low,
                         errors_up,
-                        relax=relax,
                         var=childvar,
                     )
                 elif method == 5:
@@ -306,7 +312,6 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         bias_considx + 1,
                         errors_low,
                         errors_up,
-                        relax=relax,
                         var=childvar,
                     )
                     ref_lb -= y[0]
@@ -325,7 +330,6 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         bias_considx + 1,
                         errors_low,
                         errors_up,
-                        relax=relax,
                         var=childvar,
                     )
 
@@ -342,7 +346,6 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         bias_considx + 1,
                         errors_low,
                         errors_up,
-                        relax=relax,
                         var=childvar,
                     )
                 elif method == 8:
@@ -358,7 +361,6 @@ def obtainMIPfrom1d(in_model, epsilon=1, method=1, relax=0, breakpoint_creation_
                         bias_considx + 1,
                         errors_low,
                         errors_up,
-                        relax=relax,
                         var=childvar,
                     )
 

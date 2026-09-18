@@ -3,15 +3,13 @@ import pyomo.environ as pyo
 
 import pyomo.opt as popt
 from gurobipy import GRB
-
-GUR_OUTPUT = False
-gur_tl = None
+import settings
 
 
 def solve_and_store_results(pyo_model, rep, gur=False):
     if not gur:
         opt = pyo.SolverFactory(
-            "scip", executable="../../scip/scipoptsuite-8.0.1/scip/bin/scip"
+            "scip", executable=settings.scip_executable
         )
     elif gur:
         opt = pyo.SolverFactory("gurobi_persistent", solver_io="python")
@@ -58,7 +56,10 @@ def solve_and_store_results(pyo_model, rep, gur=False):
             opt.set_callback(my_callback)
 
         res = opt.solve(
-            pyo_model, report_timing=False, tee=False, options={"TimeLimit": gur_tl}
+            pyo_model,
+            report_timing=False,
+            tee=settings.solver_output,
+            options={"TimeLimit": settings.timelimit},
         )
 
         if gur and hasattr(opt, "_firstprimal"):
@@ -111,7 +112,7 @@ def solve_and_store_results(pyo_model, rep, gur=False):
                 )
             else:
                 solving_results["time"] = res.solver.time
-        # Case 4: Timelimit exceeded (must be given in gur_tl)
+        # Case 4: Timelimit exceeded (must be given in settings.timelimit)
         elif res.solver.termination_condition == popt.TerminationCondition.maxTimeLimit:
             solving_results["lower"] = res.problem.lower_bound
             solving_results["upper"] = res.problem.upper_bound

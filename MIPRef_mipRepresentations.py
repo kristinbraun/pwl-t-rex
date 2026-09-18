@@ -1,5 +1,6 @@
 import numpy as np
 import MIPRef_graycode as gray
+import settings
 
 # the following functions create different MIP representations for PWL approximations of nonlinear 1d functions
 # input: nonlinear expression
@@ -16,7 +17,6 @@ def disaggregated_convex_combination_model(
     bias_considx,
     errors_low,
     errors_up,
-    relax=True,
     var=None,
 ):
     if var is None:
@@ -63,7 +63,7 @@ def disaggregated_convex_combination_model(
     for i in range(n):
         new_lins += [(bias_considx + n + 1, n_y + i, 1)]
 
-    if relax == 1:
+    if settings.relax == 1:
         n_epsup = bias_varidx + len(new_vars)
         for i in range(n):
             new_vars += [
@@ -130,7 +130,6 @@ def logarithmic_disaggregated_convex_combination_model(
     bias_considx,
     errors_low,
     errors_up,
-    relax=True,
     var=None,
 ):
     if var is None:
@@ -203,7 +202,7 @@ def logarithmic_disaggregated_convex_combination_model(
         new_lins += [(cur_idx, n_lambda_left + i, f_breakpoints[i])]
         new_lins += [(cur_idx, n_lambda_right + i, f_breakpoints[i + 1])]
 
-    if relax == 1:
+    if settings.relax == 1:
         n_epsup = bias_varidx + len(new_vars)
         for i in range(n):
             new_vars += [
@@ -270,7 +269,6 @@ def aggregated_convex_combination_model(
     bias_considx,
     errors_low,
     errors_up,
-    relax=True,
     var=None,
 ):
     if var is None:
@@ -326,7 +324,7 @@ def aggregated_convex_combination_model(
     new_lins += [(bias_considx + len(new_cons) - 1, n_lambda + n, -1)]
     new_lins += [(bias_considx + len(new_cons) - 1, n_y + n - 1, 1)]
 
-    if relax == 1:
+    if settings.relax == 1:
         n_epsup = bias_varidx + len(new_vars)
         for i in range(n):
             new_vars += [
@@ -406,7 +404,6 @@ def logarithmic_aggregated_convex_combination_model(
     bias_considx,
     errors_low,
     errors_up,
-    relax=True,
     var=None,
 ):
     if var is None:
@@ -463,7 +460,7 @@ def logarithmic_aggregated_convex_combination_model(
                 new_lins += [(bias_considx + len(new_cons) - 1, n_lambda + i, -1)]
         new_lins += [(bias_considx + len(new_cons) - 1, n_y + l, -1)]
 
-    if relax == 1:
+    if settings.relax == 1:
         n_epsup = bias_varidx + len(new_vars)
         for i in range(n):
             new_vars += [
@@ -685,7 +682,6 @@ def classical_incremental_method(
     bias_considx,
     errors_low,
     errors_up,
-    relax=True,
     var=None,
 ):
     if var is None:
@@ -745,7 +741,7 @@ def classical_incremental_method(
         new_lins += [(bias_considx + len(new_cons) - 1, n_delta + i + 1, -1)]
         new_lins += [(bias_considx + len(new_cons) - 1, n_y + i, 1)]
 
-    if relax == 1:
+    if settings.relax == 1:
         n_epsup = bias_varidx + len(new_vars)
         for i in range(n):
             new_vars += [
@@ -832,7 +828,6 @@ def multiple_choice_model(
     bias_considx,
     errors_low,
     errors_up,
-    relax=True,
     var=None,
 ):
     if var is None:
@@ -889,7 +884,7 @@ def multiple_choice_model(
     for i in range(n):
         new_lins += [(bias_considx + len(new_cons) - 1, n_y + i, 1)]
 
-    if relax == 1:
+    if settings.relax == 1:
         n_epsup = bias_varidx + len(new_vars)
         for i in range(n):
             new_vars += [
@@ -944,7 +939,6 @@ def binary_zig_zag_model(
     bias_considx,
     errors_low,
     errors_up,
-    relax=True,
     var=None,
 ):
     if var is None:
@@ -1007,7 +1001,7 @@ def binary_zig_zag_model(
             new_lins += [(bias_considx + len(new_cons) - 1, n_lambda + v, C[v + 1, k])]
         new_lins += [(bias_considx + len(new_cons) - 1, n_y + k, -1)]
 
-    if relax == 1:
+    if settings.relax == 1:
         Z = gray.calc_Z(r)
         n_epsup = bias_varidx + len(new_vars)
         for i in range(n):
@@ -1102,7 +1096,6 @@ def general_integer_zig_zag_model(
     bias_considx,
     errors_low,
     errors_up,
-    relax=True,
     var=None,
 ):
     if var is None:
@@ -1159,7 +1152,7 @@ def general_integer_zig_zag_model(
             new_lins += [(bias_considx + len(new_cons) - 1, n_lambda + v, C[v + 1, k])]
         new_lins += [(bias_considx + len(new_cons) - 1, n_y + k, -1)]
 
-    if relax == 1:
+    if settings.relax == 1:
         # TODO this relaxation is not working
         if False:
             n_epsup = bias_varidx + len(new_vars)

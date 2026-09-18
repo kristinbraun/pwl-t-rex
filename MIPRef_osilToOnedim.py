@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup as bs
 import numpy as np
 import datastructure_nonlinearTree as nltree
 from dataclasses import dataclass
+import settings
 
 
 @dataclass
@@ -1233,6 +1234,112 @@ def find_univariate_functions(rep):
         find_univariate_functions_recursive(nlin["expression"])
 
     return rep 
+
+
+def update_all_variables(rep):
+    def update_all_variables_recursive(exptree):
+        if isinstance(exptree, nltree.Variable):
+            exptree.all_variables = set([exptree.idx])
+            return
+        elif isinstance(exptree, nltree.Number):
+            exptree.all_variables = set()
+            return
+        else:
+            if exptree.num_children == 1:
+                update_all_variables_recursive(exptree.children[0])
+                exptree.all_variables = exptree.children[0].all_variables
+                return
+            else:
+                for c in exptree.children:
+                    update_all_variables_recursive(c)
+                exptree.all_variables = set.union(*[c.all_variables for c in exptree.children])
+                return
+
+    for i in range(len(rep.nonlinearexprs)):
+        nlin = rep.nonlinearexprs[i]
+        update_all_variables_recursive(nlin["expression"])
+
+    return rep 
+
+
+def scale_model(rep):
+    if not settings.scaling:
+        return rep
+    
+    rep = update_all_variables(rep)
+
+    def scale_nonlinearity(nlin):
+        x_var_idx = list(nlin["expression"].all_variables)[0]
+        x_var = rep.vars[x_var_idx]
+        # scale new_x = scale_factor_x * x + scale_offset_x
+        scale_factor_x = 1 / (x_var["ub"] - x_var["lb"])
+        scale_offset_x = -1 *scale_factor_x *(x_var["ub"] + x_var["lb"]) / 2
+        new_x_var = {"name": x_var["name"] + "_scaled_" + str(len(rep.vars)), "idx": len(rep.vars), "lb": -0.5, "ub": 0.5, "type": "C"}
+        new_x_var_tree = nltree.Variable(idx=new_x_var["idx"], coef=1, lb=new_x_var["lb"], ub=new_x_var["ub"])
+        mx_tree = nltree.Nonlinear_ExpTree(
+            num_children=2,
+            children=[nltree.Number(value=scale_factor_x), new_x_var_tree],
+            operation=nltree.expressions["product"],
+            nl_idx=nlin["expression"].nl_idx,
+            root_idx=nlin["expression"].root_idx,
+            all_variables=new_x_var_tree.all_variables,
+        )
+        scale_x_tree = nltree.Nonlinear_ExpTree(
+            num_children=2,
+            children=[mx_tree, nltree.Number(value=scale_offset_x)],
+            operation=nltree.expressions["sum"],
+            nl_idx=nlin["expression"].nl_idx,
+            root_idx=nlin["expression"].root_idx,
+            all_variables=mx_tree.all_variables,
+        )
+        print(scale_x_tree.get_tree())
+
+        # new constraint: x - scale_factor_x * new_x = scale_offset_x
+        new_cons_x = {"name": new_x_var["name"] + "_con", "idx": len(rep.cons), "lb": scale_offset_x, "ub": scale_offset_x}
+        lincons_xnew = (new_cons_x["idx"], new_x_var_tree.idx, -1*scale_factor_x)
+        lincons_x = (new_cons_x["idx"], x_var_idx, 1)
+        rep.lincons.append(lincons_x)
+        rep.lincons.append(lincons_xnew)
+        rep.cons.append(new_cons_x)
+        rep.vars.append(new_x_var)
+
+        def replace_x_with_new_x(nlinexp):
+            if isinstance(nlinexp, nltree.Number):
+                return nlinexp
+            elif isinstance(nlinexp, nltree.Variable):
+                assert nlinexp.idx == x_var_idx  
+                if nlinexp.coef == 1:
+                    return scale_x_tree
+                else:
+                    return nltree.Nonlinear_ExpTree(
+                        num_children=2,
+                        children=[nltree.Number(value=nlinexp.coef), scale_x_tree],
+                        operation=nltree.expressions["product"],
+                        nl_idx=nlinexp.nl_idx,
+                        root_idx=nlinexp.root_idx,
+                        all_variables=set([new_x_var_tree.idx]),
+                    )
+            else:
+                for i in range(nlinexp.num_children):
+                    nlinexp.children[i] = replace_x_with_new_x(nlinexp.children[i])
+                return nlinexp
+
+        print(nlin["expression"].get_tree())
+        nlin["expression"] = replace_x_with_new_x(nlin["expression"])
+        print(nlin["expression"].get_tree())
+
+
+    for nlin in rep.nonlinearexprs:
+        if(isinstance(nlin["expression"], nltree.Variable)):
+            continue
+        if(isinstance(nlin["expression"], nltree.Number)):
+            continue
+        print(nlin["expression"].get_tree())
+        scale_nonlinearity(nlin)
+        print("--------------------------------")
+
+    rep = update_all_variables(rep)
+    return rep
 
 
 def obtain_init_representation(filename):
