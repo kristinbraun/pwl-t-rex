@@ -72,6 +72,14 @@ parser.add_argument(
     help="Print solver output. 0: No, 1: Yes",
 )
 
+parser.add_argument(
+    "--scaling",
+    action="store",
+    type=int,
+    default=0,
+    help="Should the model be scaled? 0: No, 1: Yes",
+)
+
 args = parser.parse_args()
 mip_method = args.method
 TESTNAME = args.filename
@@ -87,6 +95,8 @@ relax = args.relax
 eps = args.epsilon
 breakpoint_creation = args.breakpoint_creation
 breakpoint_number = args.breakpoint_number
+
+scaling = args.scaling
 
 find_1d = breakpoint_creation == 1
 
