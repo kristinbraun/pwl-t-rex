@@ -54,15 +54,15 @@ class Nonlinear_ExpTree:
     lb : float
     ub : float
 
-    def __init__(self, num_children, children, operation, nl_idx=-1, root_idx=-1, all_variables=set()):
+    def __init__(self, num_children, children, operation, nl_idx=-1, root_idx=-1, all_variables=set(), lb=-np.inf, ub=np.inf):
         self.num_children = num_children
         self.children = children
         self.operation = operation
         self.nl_idx = nl_idx
         self.root_idx = root_idx
         self.all_variables = all_variables.copy()
-        self.lb = -np.inf
-        self.ub = np.inf
+        self.lb = lb
+        self.ub = ub
 
     def __repr__(self):
         res = str(self.operation.symbol) + "("
@@ -91,6 +91,14 @@ class Nonlinear_ExpTree:
                 leveln + " +--", last=(i == self.num_children - 1)
             )
         return res
+
+    def get_bounds(self):
+        if self.lb > -np.inf and self.ub < np.inf:
+            return self.lb, self.ub
+        lb, ub = get_lower_and_upper_bound(self.operation, [child.get_bounds() for child in self.children])
+        self.lb = lb
+        self.ub = ub
+        return self.lb, self.ub
 
 
 @dataclass

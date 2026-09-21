@@ -554,6 +554,8 @@ def reformulate_nonlinearities(in_model, debug=False, combine_univariate_functio
                 nl_idx=exptree.nl_idx,
                 root_idx=exptree.root_idx,
                 all_variables=exptree.all_variables,
+                lb=lb,
+                ub=ub,
             )
             artificial_nlins += [{"idx": cur_idx + bias_considx, "expression": new_tree}]
             cur_idx += 1
@@ -1271,9 +1273,9 @@ def scale_model(rep):
     def scale_nonlinearity(nlin):
         x_var_idx = list(nlin["expression"].all_variables)[0]
         x_var = rep.vars[x_var_idx]
-        # scale new_x = scale_factor_x * x + scale_offset_x
-        scale_factor_x = 1 / (x_var["ub"] - x_var["lb"])
-        scale_offset_x = -1 *scale_factor_x *(x_var["ub"] + x_var["lb"]) / 2
+        # scale x = scale_factor_x * x_new + scale_offset_x
+        scale_factor_x = x_var["ub"] - x_var["lb"]
+        scale_offset_x = (x_var["ub"] + x_var["lb"]) / 2
         new_x_var = {"name": x_var["name"] + "_scaled_" + str(len(rep.vars)), "idx": len(rep.vars), "lb": -0.5, "ub": 0.5, "type": "C"}
         new_x_var_tree = nltree.Variable(idx=new_x_var["idx"], coef=1, lb=new_x_var["lb"], ub=new_x_var["ub"])
         mx_tree = nltree.Nonlinear_ExpTree(
@@ -1292,7 +1294,6 @@ def scale_model(rep):
             root_idx=nlin["expression"].root_idx,
             all_variables=mx_tree.all_variables,
         )
-        print(scale_x_tree.get_tree())
 
         # new constraint: x - scale_factor_x * new_x = scale_offset_x
         new_cons_x = {"name": new_x_var["name"] + "_con", "idx": len(rep.cons), "lb": scale_offset_x, "ub": scale_offset_x}
@@ -1302,6 +1303,7 @@ def scale_model(rep):
         rep.lincons.append(lincons_xnew)
         rep.cons.append(new_cons_x)
         rep.vars.append(new_x_var)
+
 
         def replace_x_with_new_x(nlinexp):
             if isinstance(nlinexp, nltree.Number):
@@ -1324,9 +1326,49 @@ def scale_model(rep):
                     nlinexp.children[i] = replace_x_with_new_x(nlinexp.children[i])
                 return nlinexp
 
-        print(nlin["expression"].get_tree())
         nlin["expression"] = replace_x_with_new_x(nlin["expression"])
-        print(nlin["expression"].get_tree())
+
+        #return
+
+        # scale y
+        lb, ub = nlin["expression"].get_bounds()
+        scale_factor_y = 1 / (ub - lb)
+        scale_offset_y = -1 * scale_factor_y * (ub + lb) / 2
+        new_y_var = {"name": rep.cons[nlin["idx"]]["name"] + "_scaledvar", "idx": len(rep.vars), "lb": -0.5, "ub": 0.5, "type": "C"}
+        my_tree = nltree.Nonlinear_ExpTree(
+            num_children=2,
+            children=[nltree.Number(value=scale_factor_y), nlin["expression"]],
+            operation=nltree.expressions["product"],
+            nl_idx=nlin["expression"].nl_idx,
+            root_idx=nlin["expression"].root_idx,
+            all_variables=nlin["expression"].all_variables, 
+        )
+        new_cons_tree = nltree.Nonlinear_ExpTree(
+            num_children=2,
+            children=[my_tree, nltree.Number(value=scale_offset_y)],
+            operation=nltree.expressions["sum"],
+            nl_idx=my_tree.nl_idx,
+            root_idx=my_tree.root_idx,
+            all_variables=my_tree.all_variables,
+        )
+
+        scale_offset_y_inv = -1 * (ub + lb) / 2
+        scale_factor_y_inv = ub - lb
+
+        new_cons = {"name": rep.cons[nlin["idx"]]["name"] + "_scaledcons", "lb": 0, "ub": 0}
+        
+        rep.cons[nlin["idx"]]["lb"] += scale_offset_y_inv
+        rep.cons[nlin["idx"]]["ub"] += scale_offset_y_inv
+        
+        lincons_ynew = (len(rep.cons), new_y_var["idx"], -1)
+        lincons_y = (nlin["idx"], new_y_var["idx"], scale_factor_y_inv)
+
+        nlin["idx"] = len(rep.cons)
+        nlin["expression"] = new_cons_tree
+        rep.vars.append(new_y_var)
+        rep.cons.append(new_cons)
+        rep.lincons.append(lincons_ynew)
+        rep.lincons.append(lincons_y)
 
 
     for nlin in rep.nonlinearexprs:
@@ -1334,11 +1376,12 @@ def scale_model(rep):
             continue
         if(isinstance(nlin["expression"], nltree.Number)):
             continue
-        print(nlin["expression"].get_tree())
+        if(len(nlin["expression"].all_variables) != 1):
+            continue
         scale_nonlinearity(nlin)
-        print("--------------------------------")
 
     rep = update_all_variables(rep)
+
     return rep
 
 

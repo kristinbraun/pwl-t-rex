@@ -16,9 +16,10 @@ else:
     oned_rep = oto.obtain_1d_representation(settings.testfile)
     easy_rep = otm.ease_model(oned_rep, use_univariate_functions=False)
 
+m_unscaled = oto.create_pyomomodel_from_OSILdata(easy_rep)
 easy_rep = oto.scale_model(easy_rep)
 
-m = oto.create_pyomomodel_from_OSILdata(oned_rep)
+m = oto.create_pyomomodel_from_OSILdata(easy_rep)
 
 
 init_rep = oto.obtain_init_representation(settings.testfile)

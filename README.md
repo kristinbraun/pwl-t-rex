@@ -163,8 +163,8 @@ The program outputs:
 - `MIPRef_onedimToMIP.py`: Converts one-dimensional to MIP representation
 - `MIPRef_mipRepresentations.py`: Contains MIP formulation methods
 - `MIPRef_graycode.py`: Gray code utilities for binary encoding
-- `MIPRef_linrelax.py`: Linear relaxation utilities
-- `nltree.py`: Nonlinear expression tree implementation
+- `MIPRef_linearRelaxation.py`: Linear relaxation utilities
+- `datastructure_nonlinearTree.py`: Nonlinear expression tree implementation
 - `evaluation_solving.py`: Solving utilities
 - `evaluation_statistics.py`: Statistical analysis utilities
 - `instances/convert/`: Utilities for converting AMPL/GAMS files to OSIL format
