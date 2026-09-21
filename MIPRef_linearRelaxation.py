@@ -55,6 +55,31 @@ def find_breakpoints_abs(f_nl, x_low, x_up):
     return breakpoints, y, errors_low, errors_up, m_vals, t_vals
 
 
+def perturb_breakpoints(breakpoints, y):
+    ret_breakpoints = breakpoints.copy()
+    ret_y = y.copy()
+    ret_m_vals = np.zeros_like(breakpoints)
+    ret_t_vals = np.zeros_like(breakpoints)
+    if perturb_breakpoints:
+        pert_value = 1e-9
+        for i in range(len(breakpoints)):
+            ret_breakpoints[i] += np.random.uniform(-pert_value, pert_value)
+            ret_y[i] += np.random.uniform(-pert_value, pert_value)
+
+    for i in range(len(ret_breakpoints) - 1):
+        dx = ret_breakpoints[i+1] - ret_breakpoints[i]
+        if dx != 0:
+            m = (ret_y[i+1] - ret_y[i]) / dx
+            t = ret_y[i] - m * ret_breakpoints[i]
+        else:
+            m = 0
+            t = ret_y[i]
+        ret_m_vals[i+1] = m
+        ret_t_vals[i+1] = t
+
+    return ret_breakpoints, ret_y, ret_m_vals, ret_t_vals
+
+
 def find_breakpoints(f, x_low, x_up, max_error):
     if f.symbol == "abs":
         return find_breakpoints_abs(f, x_low, x_up)
@@ -133,5 +158,5 @@ def test_minlplibfile():
             continue
         assert f.children[0].coef == 1  # TODO is that true?
         x_low, x_up = f.children[0].lb, f.children[0].ub
-        breakpoints, e_low, e_up, m, t = find_breakpoints(f.operation, x_low, x_up, eps)
+        breakpoints, y, errors_low, errors_up, m_vals, t_vals = find_breakpoints(f.operation, x_low, x_up, eps)
         # plot_relaxation(f.operation, breakpoints, m, t, e_low, e_up)

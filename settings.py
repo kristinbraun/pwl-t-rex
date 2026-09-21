@@ -20,6 +20,8 @@ method = -5
 # Should the model be scaled? 0: No, 1: Yes
 scaling = 0
 
+
+
 # --- Breakpoints / approximation ---
 # How to create the breakpoints? 0: Fixed Epsilon, 1: Fixed Number of Breakpoints
 breakpoint_creation = 0
@@ -30,6 +32,8 @@ breakpoint_number = 10
 # Which relaxation method should be used?
 # 0: Approximation, 1: Exact error for each segment, 2: Fixed error
 relax = 2
+# Should the breakpoints be perturbed? 0: No, 1: Yes
+perturb_breakpoints = 0
 
 # --- Solver ---
 # Creating model without solving it
@@ -150,6 +154,13 @@ def parse_cli():
         default=relax,
         help="Which relaxation method should be used? (0: Approximation, 1: Exact error for each segment, 2: Fixed error)",
     )
+    approximation.add_argument(
+        "--perturb_breakpoints",
+        action="store",
+        type=int,
+        default=0,
+        help="Should the breakpoints be perturbed? 0: No, 1: Yes",
+    )
 
     solver = parser.add_argument_group("solver")
     solver.add_argument(
@@ -183,6 +194,7 @@ def parse_cli():
     epsilon = args.epsilon
     breakpoint_number = args.breakpoint_number
     relax = args.relax
+    perturb_breakpoints = args.perturb_breakpoints
     create = False if args.create == 0 else True
     timelimit = args.timelimit
     solver_output = False if args.solver_output == 0 else True

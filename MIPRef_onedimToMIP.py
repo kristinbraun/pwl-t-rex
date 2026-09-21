@@ -167,6 +167,9 @@ def obtainMIPfrom1d(in_model, method=1):
                     t_vals,
                 ) = linrelax.find_breakpoints(f, x_low, x_up, epsilon)
                 # TODO: return interesting stuff about breakpoints
+
+                breakpoints, y, m_vals, t_vals = linrelax.perturb_breakpoints(breakpoints, y)
+
                 breakpoint_info += [
                     {
                         "breakpoints": breakpoints,
@@ -208,15 +211,9 @@ def obtainMIPfrom1d(in_model, method=1):
                 y = np.zeros(num_breakpoints)
                 for i in range(num_breakpoints):
                     y[i] = f(breakpoints[i])
+                breakpoints, y, m_vals, t_vals = linrelax.perturb_breakpoints(breakpoints, y)
                 errors_low = np.zeros(num_breakpoints)
                 errors_up = np.zeros(num_breakpoints)
-                m_vals = np.zeros(num_breakpoints)
-                t_vals = np.zeros(num_breakpoints)
-                for i in range(num_breakpoints - 1):
-                    m = (y[i+1] - y[i]) / (breakpoints[i+1] - breakpoints[i])
-                    t = y[i] - m * breakpoints[i]
-                    m_vals[i+1] = m
-                    t_vals[i+1] = t
                  
                 breakpoint_info += [
                     {
@@ -225,7 +222,9 @@ def obtainMIPfrom1d(in_model, method=1):
                         "var": in_model.vars[childvar.idx],
                     }
                 ]
+
                 breakpoints_list += [(len(breakpoints), x_up - x_low)]
+
 
             if 1 <= method <= 8:
                 # call methods with cur_idx = idx of new constraint
