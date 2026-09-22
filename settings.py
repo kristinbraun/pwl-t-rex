@@ -48,7 +48,13 @@ timelimit = 60
 # Print solver output
 solver_output = False
 # SCIP executable used when Gurobi is not selected
-scip_executable = "../../scip/scipoptsuite-8.0.1/scip/bin/scip"
+scip_executable = "C:/Users/braun/AppData/Local/miniforge3/envs/pwl_mip/Library/bin/scip.exe"
+# Ipopt executable for NLP solving
+ipopt_executable = "C:/Users/braun/AppData/Local/miniforge3/envs/pwl_mip/Library/bin/ipopt.exe"
+# Use SCIP with warmstart from MIP solution (mode=solve only)
+minlp_start = False
+# Use Ipopt with fixed integers from MIP solution (mode=solve only)
+nlp_fixed = False
 
 # --- Derived method flags (set by resolve_derived_flags) ---
 find_1d = False
@@ -102,8 +108,9 @@ resolve_derived_flags()
 def parse_cli():
     global filename, testfile
     global mode, method, scaling
-    global breakpoint_creation, epsilon, breakpoint_number, relax
+    global breakpoint_creation, epsilon, breakpoint_number, relax, perturb_breakpoints
     global create, timelimit, solver_output
+    global minlp_start, nlp_fixed
 
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
@@ -197,13 +204,27 @@ def parse_cli():
         default=0,
         help="Print solver output. 0: No, 1: Yes",
     )
+    solver.add_argument(
+        "--minlp_start",
+        action="store",
+        type=int,
+        default=0,
+        help="Use SCIP with warmstart from MIP solution (mode=solve only). 0: No, 1: Yes",
+    )
+    solver.add_argument(
+        "--nlp_fixed",
+        action="store",
+        type=int,
+        default=0,
+        help="Use Ipopt with fixed integers from MIP solution (mode=solve only). 0: No, 1: Yes",
+    )
 
     args = parser.parse_args()
 
     filename = args.filename
     mode = args.mode
     method = args.method
-    scaling = args.scaling
+    scaling = args.scaling if args.breakpoint_creation == 1 else 0
     breakpoint_creation = args.breakpoint_creation
     epsilon = args.epsilon
     breakpoint_number = args.breakpoint_number
@@ -212,6 +233,8 @@ def parse_cli():
     create = False if args.create == 0 else True
     timelimit = args.timelimit
     solver_output = False if args.solver_output == 0 else True
+    minlp_start = False if args.minlp_start == 0 else True
+    nlp_fixed = False if args.nlp_fixed == 0 else True
 
     testfile = instances_dir + filename
     if ".osil" not in testfile:

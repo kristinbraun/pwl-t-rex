@@ -1169,6 +1169,8 @@ def create_pyomomodel_from_OSILdata(rep):
 
     for nlins in rep.nonlinearexprs:
         py_use = nonlinear_pyomo(nlins["expression"])
+        if "coef" in nlins:
+            py_use *= nlins["coef"]
         if nlins["idx"] < 0:
             if nlins["idx"] < -1:
                 exit("Not implemented multiple objectives")
