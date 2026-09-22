@@ -128,7 +128,7 @@ def parse_cli():
         action="store",
         type=int,
         default=method,
-        help="Which MIP method should be used? (-5: All, -1: Initial MINLP, 0: 1D-MINLP, 1: DisaggConvex, 2: LogDisaggConvex, 3: AggConvex, 4: LogAggConvex, 5: Incremental, 6: MultipleChoice, 7: BinaryZigZag, 8: IntegerZigZag)",
+        help="Which MIP method should be used? (-5: All (only for compare), -1: Initial MINLP (only for compare), 0: 1D-MINLP (only for compare), 1: DisaggConvex, 2: LogDisaggConvex, 3: AggConvex, 4: LogAggConvex, 5: Incremental, 6: MultipleChoice, 7: BinaryZigZag, 8: IntegerZigZag)",
     )
     formulation.add_argument(
         "--scaling",
