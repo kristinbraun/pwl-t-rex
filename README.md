@@ -158,7 +158,10 @@ The program outputs:
 
 
 ## Project Structure
-- `pwltrex.py`: Main execution script
+- `pwltrex.py`: Main entry script; parses CLI arguments and dispatches to compare or solve mode
+- `compare_main.py`: Comparison pipeline for PWL-MIP formulations
+- `minlp_main.py`: MINLP solving entry point (currently unused)
+- `settings.py`: Default parameters and command-line argument parsing
 - `MIPRef_osilToOnedim.py`: Converts OSIL format to one-dimensional representation 
 - `MIPRef_onedimToMIP.py`: Converts one-dimensional to MIP representation
 - `MIPRef_mipRepresentations.py`: Contains MIP formulation methods

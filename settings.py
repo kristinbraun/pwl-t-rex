@@ -11,6 +11,11 @@ instances_dir = "instances/"
 # Full path to the instance that is currently being solved
 testfile = None
 
+# --- Mode ---
+# compare: formulate and compare PWL-MIP models
+# solve: solve the MINLP via a PWL-MIP formulation
+mode = "compare"
+
 # --- Formulation ---
 # Which MIP method should be used?
 # -5: All, -1: Initial MINLP, 0: 1D-MINLP, 1: DisaggConvex, 2: LogDisaggConvex,
@@ -96,7 +101,7 @@ resolve_derived_flags()
 
 def parse_cli():
     global filename, testfile
-    global method, scaling
+    global mode, method, scaling
     global breakpoint_creation, epsilon, breakpoint_number, relax
     global create, timelimit, solver_output
 
@@ -110,6 +115,14 @@ def parse_cli():
     )
 
     formulation = parser.add_argument_group("formulation")
+    formulation.add_argument(
+        "--mode",
+        action="store",
+        type=str,
+        choices=["compare", "solve"],
+        default=mode,
+        help="compare: formulate and compare PWL-MIP models; solve: solve the MINLP via a PWL-MIP formulation",
+    )
     formulation.add_argument(
         "--method",
         action="store",
@@ -188,6 +201,7 @@ def parse_cli():
     args = parser.parse_args()
 
     filename = args.filename
+    mode = args.mode
     method = args.method
     scaling = args.scaling
     breakpoint_creation = args.breakpoint_creation
