@@ -44,7 +44,7 @@ perturb_breakpoints = 0
 # Creating model without solving it
 create = False
 # Timelimit for MILPs in seconds
-timelimit = 60
+timelimit = 120
 # Print solver output
 solver_output = False
 # SCIP executable used when Gurobi is not selected
@@ -55,6 +55,11 @@ ipopt_executable = "C:/Users/braun/AppData/Local/miniforge3/envs/pwl_mip/Library
 minlp_start = False
 # Use Ipopt with fixed integers from MIP solution (mode=solve only)
 nlp_fixed = False
+# Use SCIP for reference MINLP solving
+minlp_reference = False
+
+# Tolerance for MINLP zero values
+minlp_zero_tol = 1e-9
 
 # --- Derived method flags (set by resolve_derived_flags) ---
 find_1d = False
@@ -110,8 +115,8 @@ def parse_cli():
     global mode, method, scaling
     global breakpoint_creation, epsilon, breakpoint_number, relax, perturb_breakpoints
     global create, timelimit, solver_output
-    global minlp_start, nlp_fixed
-
+    global minlp_start, nlp_fixed, minlp_reference
+    global minlp_zero_toldd
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument(
@@ -218,6 +223,13 @@ def parse_cli():
         default=0,
         help="Use Ipopt with fixed integers from MIP solution (mode=solve only). 0: No, 1: Yes",
     )
+    solver.add_argument(
+        "--minlp_reference",
+        action="store",
+        type=int,
+        default=0,
+        help="Use SCIP for reference MINLP solving (mode=solve only). 0: No, 1: Yes",
+    )
 
     args = parser.parse_args()
 
@@ -235,7 +247,7 @@ def parse_cli():
     solver_output = False if args.solver_output == 0 else True
     minlp_start = False if args.minlp_start == 0 else True
     nlp_fixed = False if args.nlp_fixed == 0 else True
-
+    minlp_reference = False if args.minlp_reference == 0 else True
     testfile = instances_dir + filename
     if ".osil" not in testfile:
         testfile = testfile + ".osil"
