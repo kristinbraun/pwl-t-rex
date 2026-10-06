@@ -55,10 +55,44 @@ def _json_default(obj):
 
 def _solution_filename():
     instance_name = os.path.basename(settings.testfile).replace(".osil", "")
-    return os.path.join("solutions", f"{instance_name}_method{settings.method}.json")
+    additional_info = ""
+    if settings.breakpoint_creation == 0:
+        additional_info = f"eps_{settings.epsilon}_method_{settings.method}"
+    else:
+        additional_info = f"bp_{settings.breakpoint_number}_method_{settings.method}"
+
+    return os.path.join("solutions", f"{instance_name}_{additional_info}.json")
 
 
-def save_solution(mip_model, mip_rep, results_mip):
+def load_solution():
+    """Return the saved solution dict when the JSON file already exists."""
+    filename = _solution_filename()
+    if not os.path.isfile(filename):
+        return None
+    try:
+        with open(filename, "r") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"\nCould not read {filename} ({exc}). Solving again.")
+        return None
+    print(f"\nUsing existing solution: {filename}")
+    return data
+
+
+def original_variables_from_saved(saved, init_rep):
+    """Take original MINLP variable values from a stored solution."""
+    stored = saved.get("variables") or {}
+    solution = {}
+    for v in init_rep.vars:
+        var_name = v["name"]
+        if var_name in stored:
+            solution[var_name] = float(stored[var_name])
+        else:
+            print(f"Warning: Original variable {var_name} not found in MIP solution")
+    return solution
+
+
+def save_solution(mip_model, mip_rep, results_mip, violations_constraints, violations_variables):
     """Save MIP solution to JSON file."""
     os.makedirs("solutions", exist_ok=True)
     filename = _solution_filename()
@@ -93,6 +127,9 @@ def save_solution(mip_model, mip_rep, results_mip):
                     pass
         
         solution_data["variables"] = variables
+    solution_data["violations_constraints"] = violations_constraints
+    solution_data["violations_variables"] = violations_variables
+
 
     with open(filename, "w") as f:
         json.dump(solution_data, f, indent=2, default=_json_default)
@@ -124,7 +161,7 @@ def _empty_solving_results():
     }
 
 
-def _extract_solver_results(results, model, init_rep):
+def _extract_solver_results(results, model, init_rep, measured_time):
     """Map a Pyomo solver result to a small status dict."""
     solving_results = _empty_solving_results()
     term = results.solver.termination_condition
@@ -160,10 +197,7 @@ def _extract_solver_results(results, model, init_rep):
             # Keep objective None if no loadable solution exists
             pass
 
-    if hasattr(results.solver, "time") and results.solver.time is not None:
-        solving_results["time"] = float(results.solver.time)
-    else:
-        solving_results["time"] = 0.0
+    solving_results["time"] = float(measured_time)
 
     # Add the solver gap (relative optimality gap) to the results if available
     gap = np.abs(
@@ -171,13 +205,34 @@ def _extract_solver_results(results, model, init_rep):
             ) / (np.abs(solving_results["objective"]) + 1e-10)
     solving_results["gap"] = gap
 
+    if solving_results.get("objective") is not None:
+        solving_results["variables"] = _extract_model_variables(model, init_rep)
+
     return solving_results
+
+
+def _extract_model_variables(model, init_rep):
+    """Read original variable values from a solved model."""
+    variables = {}
+    for v in init_rep.vars:
+        var_name = v["name"]
+        try:
+            val = pyo.value(model.component(var_name))
+        except Exception:
+            continue
+        if val is None:
+            continue
+        if abs(val) < settings.minlp_zero_tol:
+            val = 0.0
+        variables[var_name] = float(val)
+    return variables
 
 
 def obtain_max_infeasibility(model, rep, mip_solution):
     """Obtain the maximum infeasibility of the initial solution."""
     model_used = model.clone()
-    violations = {}
+    violations_constraints = {}
+    violations_variables = {}
 
     # Set all variables in model_used to the values from mip_solution
     for v in rep.vars:
@@ -190,6 +245,10 @@ def obtain_max_infeasibility(model, rep, mip_solution):
             continue
         mip_val = mip_solution[var_name]
         var_component.set_value(mip_val)
+        violation_ub = max(0, mip_val - v["ub"])
+        violation_lb = max(0, v["lb"] - mip_val)
+        violations_variables[var_name] = max(violation_lb, violation_ub)
+        
 
 
     # Iteriere über alle aktiven Nebenbedingungen im Modell
@@ -207,19 +266,19 @@ def obtain_max_infeasibility(model, rep, mip_solution):
         if c.lower is not None:
             lb_viol = c.lower - body_val
             if lb_viol > 0:
-                violations[c.name] = lb_viol
-            elif c.name not in violations:
-                violations[c.name] = 0
+                violations_constraints[c.name] = lb_viol
+            elif c.name not in violations_constraints:
+                violations_constraints[c.name] = 0
 
         # Prüfe Verletzung der oberen Schranke (Upper Bound)
         if c.upper is not None:
             ub_viol = body_val - c.upper
             if ub_viol > 0:
-                violations[c.name] = ub_viol
-            elif c.name not in violations:
-                violations[c.name] = 0
+                violations_constraints[c.name] = ub_viol
+            elif c.name not in violations_constraints:
+                violations_constraints[c.name] = 0
 
-    return violations
+    return violations_constraints, violations_variables
 
 
 

@@ -57,27 +57,40 @@ def run():
         print("Use relax=0 or relax=2 instead.")
         return
 
-    mip_model, mip_rep, results_mip = solve_pwl_mip()
+    # Build original MINLP model for warm-starting / fixing
+    init_rep = oto.obtain_init_representation(settings.testfile)
+    init_model = oto.create_pyomomodel_from_OSILdata(init_rep)
+    
+    saved = minlp_eval.load_solution()
+    if saved is not None:
+        results_mip = saved
+        mip_model = None
+    else:
+        mip_model, mip_rep, results_mip = solve_pwl_mip()
+        if mip_model is not None:
+            mip_solution = minlp_eval.extract_original_variables(mip_model, init_rep)
+        else:
+            mip_solution = minlp_eval.original_variables_from_saved(
+                results_mip, init_rep
+            )
+
+        violations_constraints, violations_variables = minlp_eval.obtain_max_infeasibility(init_model, init_rep, mip_solution)
+        minlp_eval.save_solution(mip_model, mip_rep, results_mip, violations_constraints, violations_variables)
 
 
-    # Save solution to JSON
-    minlp_eval.save_solution(mip_model, mip_rep, results_mip)
-
-    # Run post-solve steps if solution is primal feasible
-    if results_mip["status"] in ["OPTIMAL", "TIMELIMIT"] and results_mip.get(
-        "objective"
-    ) is not None and results_mip.get("time_firstprimal") is not None:
-        # Build original MINLP model for warm-starting / fixing
-        init_rep = oto.obtain_init_representation(settings.testfile)
-        init_model = oto.create_pyomomodel_from_OSILdata(init_rep)
-
-        # Extract MIP solution values for original variables
-        mip_solution = minlp_eval.extract_original_variables(mip_model, init_rep)
+    # Run post-solve steps if solution is primal feasible.
+    # A stored file has variable values instead of time_firstprimal.
+    has_primal = (
+        results_mip.get("status") in ["OPTIMAL", "TIMELIMIT"]
+        and results_mip.get("objective") is not None
+        and (
+            results_mip.get("time_firstprimal") is not None
+            or results_mip.get("variables")
+        )
+    )
+    if has_primal:
 
         postsolve_results = {}
-
-        violations = minlp_eval.obtain_max_infeasibility(init_model, init_rep, mip_solution)
-        print("Max infeasibility: " + str(max(violations.values())))
 
         result_reference = None
         if settings.minlp_reference:

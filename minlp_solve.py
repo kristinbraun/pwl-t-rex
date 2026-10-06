@@ -1,7 +1,7 @@
 import pyomo.environ as pyo
 import pyomo.opt as popt
 import settings
-
+import time
 import minlp_evaluate_solutions as minlp_eval
 
 
@@ -11,12 +11,16 @@ def solve_minlp_for_reference(init_model, init_rep):
     model = init_model.clone()
     try:
         opt = pyo.SolverFactory("scip", executable=settings.scip_executable)
+        start_time = time.perf_counter()
         results = opt.solve(
             model,
             tee=settings.solver_output,
             options={"limits/time": settings.timelimit},
         )
-        return minlp_eval._extract_solver_results(results, model, init_rep)
+        end_time = time.perf_counter()
+        exact_time = end_time - start_time
+        print(f"Exact time: {exact_time:.2f} seconds")
+        return minlp_eval._extract_solver_results(results, model, init_rep, exact_time)
     except Exception as e:
         return {
             "status": "ERROR",
@@ -50,12 +54,16 @@ def solve_minlp_warmstart(init_model, init_rep, mip_solution):
 
     try:
         opt = pyo.SolverFactory("scip", executable=settings.scip_executable)
+        start_time = time.perf_counter()
         results = opt.solve(
             model,
             tee=settings.solver_output,
             options={"limits/time": settings.timelimit},
         )
-        return minlp_eval._extract_solver_results(results, model, init_rep)
+        end_time = time.perf_counter()
+        exact_time = end_time - start_time
+        print(f"Exact time: {exact_time:.2f} seconds")
+        return minlp_eval._extract_solver_results(results, model, init_rep, exact_time)
     except Exception as e:
         return {
             "status": "ERROR",
@@ -90,12 +98,16 @@ def solve_nlp_fixed(init_model, init_rep, mip_solution):
 
     try:
         opt = pyo.SolverFactory("ipopt", executable=settings.ipopt_executable)
+        start_time = time.perf_counter()
         results = opt.solve(
             model,
             tee=settings.solver_output,
             options={"max_cpu_time": settings.timelimit},
         )
-        return minlp_eval._extract_solver_results(results, model, init_rep)
+        end_time = time.perf_counter()
+        exact_time = end_time - start_time
+        print(f"Exact time: {exact_time:.2f} seconds")
+        return minlp_eval._extract_solver_results(results, model, init_rep, exact_time)
     except Exception as e:
         return {
             "status": "ERROR",
