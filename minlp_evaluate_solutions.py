@@ -57,9 +57,9 @@ def _solution_filename():
     instance_name = os.path.basename(settings.testfile).replace(".osil", "")
     additional_info = ""
     if settings.breakpoint_creation == 0:
-        additional_info = f"eps_{settings.epsilon}_method_{settings.method}"
+        additional_info = f"eps_{settings.epsilon}_relax_{settings.relax}_method_{settings.method}"
     else:
-        additional_info = f"bp_{settings.breakpoint_number}_method_{settings.method}"
+        additional_info = f"bp_{settings.breakpoint_number}_relax_{settings.relax}_method_{settings.method}"
 
     return os.path.join("solutions", f"{instance_name}_{additional_info}.json")
 
