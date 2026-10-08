@@ -65,14 +65,10 @@ def run():
     if saved is not None:
         results_mip = saved
         mip_model = None
+        mip_solution = minlp_eval.original_variables_from_saved(results_mip, init_rep)
     else:
         mip_model, mip_rep, results_mip = solve_pwl_mip()
-        if mip_model is not None:
-            mip_solution = minlp_eval.extract_original_variables(mip_model, init_rep)
-        else:
-            mip_solution = minlp_eval.original_variables_from_saved(
-                results_mip, init_rep
-            )
+        mip_solution = minlp_eval.extract_original_variables(mip_model, init_rep)
 
         violations_constraints, violations_variables = minlp_eval.obtain_max_infeasibility(init_model, init_rep, mip_solution)
         minlp_eval.save_solution(mip_model, mip_rep, results_mip, violations_constraints, violations_variables)
